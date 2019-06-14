@@ -15,7 +15,7 @@
  */
 
 /* tslint:disable */
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 import Address = require('../Address');
 import {BitsUtil} from '../BitsUtil';
 import {AddressCodec} from './AddressCodec';
@@ -39,7 +39,7 @@ export class MapClearNearCacheCodec {
 
     static encodeRequest(name: string, target: Address) {
 // Encode request into clientMessage
-        var clientMessage = ClientMessage.newClientMessage(this.calculateSize(name, target));
+        var clientMessage = ClientOutputMessage.newClientMessage(this.calculateSize(name, target));
         clientMessage.setMessageType(REQUEST_TYPE);
         clientMessage.setRetryable(RETRYABLE);
         clientMessage.appendString(name);

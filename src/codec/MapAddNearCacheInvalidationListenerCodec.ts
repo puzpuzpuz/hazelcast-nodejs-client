@@ -15,7 +15,7 @@
  */
 
 /* tslint:disable */
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 import {BitsUtil} from '../BitsUtil';
 import {UUIDCodec} from './UUIDCodec';
 import {Data} from '../serialization/Data';
@@ -40,7 +40,7 @@ export class MapAddNearCacheInvalidationListenerCodec {
 
     static encodeRequest(name: string, listenerFlags: number, localOnly: boolean) {
 // Encode request into clientMessage
-        var clientMessage = ClientMessage.newClientMessage(this.calculateSize(name, listenerFlags, localOnly));
+        var clientMessage = ClientOutputMessage.newClientMessage(this.calculateSize(name, listenerFlags, localOnly));
         clientMessage.setMessageType(REQUEST_TYPE);
         clientMessage.setRetryable(RETRYABLE);
         clientMessage.appendString(name);
@@ -50,7 +50,7 @@ export class MapAddNearCacheInvalidationListenerCodec {
         return clientMessage;
     }
 
-    static decodeResponse(clientMessage: ClientMessage, toObjectFunction: (data: Data) => any = null) {
+    static decodeResponse(clientMessage: ClientInputMessage, toObjectFunction: (data: Data) => any = null) {
         // Decode response from client message
         var parameters: any = {
             'response': null
@@ -64,7 +64,7 @@ export class MapAddNearCacheInvalidationListenerCodec {
         return parameters;
     }
 
-    static handle(clientMessage: ClientMessage, handleEventImapinvalidation: any, handleEventImapbatchinvalidation: any, toObjectFunction: (data: Data) => any = null) {
+    static handle(clientMessage: ClientInputMessage, handleEventImapinvalidation: any, handleEventImapbatchinvalidation: any, toObjectFunction: (data: Data) => any = null) {
 
         var messageType = clientMessage.getMessageType();
         if (messageType === BitsUtil.EVENT_IMAPINVALIDATION && handleEventImapinvalidation !== null) {

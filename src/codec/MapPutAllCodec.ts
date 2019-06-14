@@ -15,7 +15,7 @@
  */
 
 /* tslint:disable */
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 import {BitsUtil} from '../BitsUtil';
 import {Data} from '../serialization/Data';
 import {MapMessageType} from './MapMessageType';
@@ -45,7 +45,7 @@ export class MapPutAllCodec {
 
     static encodeRequest(name: string, entries: any) {
 // Encode request into clientMessage
-        var clientMessage = ClientMessage.newClientMessage(this.calculateSize(name, entries));
+        var clientMessage = ClientOutputMessage.newClientMessage(this.calculateSize(name, entries));
         clientMessage.setMessageType(REQUEST_TYPE);
         clientMessage.setRetryable(RETRYABLE);
         clientMessage.appendString(name);

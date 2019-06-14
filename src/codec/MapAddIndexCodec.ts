@@ -15,7 +15,7 @@
  */
 
 /* tslint:disable */
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 import {BitsUtil} from '../BitsUtil';
 import {MapMessageType} from './MapMessageType';
 
@@ -38,7 +38,7 @@ export class MapAddIndexCodec {
 
     static encodeRequest(name: string, attribute: string, ordered: boolean) {
 // Encode request into clientMessage
-        var clientMessage = ClientMessage.newClientMessage(this.calculateSize(name, attribute, ordered));
+        var clientMessage = ClientOutputMessage.newClientMessage(this.calculateSize(name, attribute, ordered));
         clientMessage.setMessageType(REQUEST_TYPE);
         clientMessage.setRetryable(RETRYABLE);
         clientMessage.appendString(name);

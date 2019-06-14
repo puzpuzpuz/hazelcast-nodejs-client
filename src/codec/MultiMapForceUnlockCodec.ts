@@ -15,7 +15,7 @@
  */
 
 /* tslint:disable */
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 import {BitsUtil} from '../BitsUtil';
 import {Data} from '../serialization/Data';
 import {MultiMapMessageType} from './MultiMapMessageType';
@@ -39,7 +39,7 @@ export class MultiMapForceUnlockCodec {
 
     static encodeRequest(name: string, key: Data, referenceId: any) {
 // Encode request into clientMessage
-        var clientMessage = ClientMessage.newClientMessage(this.calculateSize(name, key, referenceId));
+        var clientMessage = ClientOutputMessage.newClientMessage(this.calculateSize(name, key, referenceId));
         clientMessage.setMessageType(REQUEST_TYPE);
         clientMessage.setRetryable(RETRYABLE);
         clientMessage.appendString(name);

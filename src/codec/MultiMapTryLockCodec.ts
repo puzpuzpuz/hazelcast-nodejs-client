@@ -15,7 +15,7 @@
  */
 
 /* tslint:disable */
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 import {BitsUtil} from '../BitsUtil';
 import {Data} from '../serialization/Data';
 import {MultiMapMessageType} from './MultiMapMessageType';
@@ -42,7 +42,7 @@ export class MultiMapTryLockCodec {
 
     static encodeRequest(name: string, key: Data, threadId: any, lease: any, timeout: any, referenceId: any) {
 // Encode request into clientMessage
-        var clientMessage = ClientMessage.newClientMessage(this.calculateSize(name, key, threadId, lease, timeout, referenceId));
+        var clientMessage = ClientOutputMessage.newClientMessage(this.calculateSize(name, key, threadId, lease, timeout, referenceId));
         clientMessage.setMessageType(REQUEST_TYPE);
         clientMessage.setRetryable(RETRYABLE);
         clientMessage.appendString(name);
@@ -55,7 +55,7 @@ export class MultiMapTryLockCodec {
         return clientMessage;
     }
 
-    static decodeResponse(clientMessage: ClientMessage, toObjectFunction: (data: Data) => any = null) {
+    static decodeResponse(clientMessage: ClientInputMessage, toObjectFunction: (data: Data) => any = null) {
         // Decode response from client message
         var parameters: any = {
             'response': null

@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 import {UUID} from '../core/UUID';
 
 export class UUIDCodec {
-    static decode(clientMessage: ClientMessage, toObject: Function): UUID {
+    static decode(clientMessage: ClientInputMessage, toObject: Function): UUID {
         const most = clientMessage.readLong();
         const least = clientMessage.readLong();
         return new UUID(most, least);

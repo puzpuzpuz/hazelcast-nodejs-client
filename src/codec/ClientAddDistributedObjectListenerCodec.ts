@@ -15,7 +15,7 @@
  */
 
 /* tslint:disable */
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 import {BitsUtil} from '../BitsUtil';
 import {Data} from '../serialization/Data';
 import {ClientMessageType} from './ClientMessageType';
@@ -37,7 +37,7 @@ export class ClientAddDistributedObjectListenerCodec {
 
     static encodeRequest(localOnly: boolean) {
 // Encode request into clientMessage
-        var clientMessage = ClientMessage.newClientMessage(this.calculateSize(localOnly));
+        var clientMessage = ClientOutputMessage.newClientMessage(this.calculateSize(localOnly));
         clientMessage.setMessageType(REQUEST_TYPE);
         clientMessage.setRetryable(RETRYABLE);
         clientMessage.appendBoolean(localOnly);
@@ -45,7 +45,7 @@ export class ClientAddDistributedObjectListenerCodec {
         return clientMessage;
     }
 
-    static decodeResponse(clientMessage: ClientMessage, toObjectFunction: (data: Data) => any = null) {
+    static decodeResponse(clientMessage: ClientInputMessage, toObjectFunction: (data: Data) => any = null) {
         // Decode response from client message
         var parameters: any = {
             'response': null
@@ -56,7 +56,7 @@ export class ClientAddDistributedObjectListenerCodec {
         return parameters;
     }
 
-    static handle(clientMessage: ClientMessage, handleEventDistributedobject: any, toObjectFunction: (data: Data) => any = null) {
+    static handle(clientMessage: ClientInputMessage, handleEventDistributedobject: any, toObjectFunction: (data: Data) => any = null) {
 
         var messageType = clientMessage.getMessageType();
         if (messageType === BitsUtil.EVENT_DISTRIBUTEDOBJECT && handleEventDistributedobject !== null) {

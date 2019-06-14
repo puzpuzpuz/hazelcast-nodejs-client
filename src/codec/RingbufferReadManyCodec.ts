@@ -15,7 +15,7 @@
  */
 
 /* tslint:disable */
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 import {BitsUtil} from '../BitsUtil';
 import {Data} from '../serialization/Data';
 import {RingbufferMessageType} from './RingbufferMessageType';
@@ -44,7 +44,7 @@ export class RingbufferReadManyCodec {
 
     static encodeRequest(name: string, startSequence: any, minCount: number, maxCount: number, filter: Data) {
 // Encode request into clientMessage
-        var clientMessage = ClientMessage.newClientMessage(this.calculateSize(name, startSequence, minCount, maxCount, filter));
+        var clientMessage = ClientOutputMessage.newClientMessage(this.calculateSize(name, startSequence, minCount, maxCount, filter));
         clientMessage.setMessageType(REQUEST_TYPE);
         clientMessage.setRetryable(RETRYABLE);
         clientMessage.appendString(name);
@@ -59,7 +59,7 @@ export class RingbufferReadManyCodec {
         return clientMessage;
     }
 
-    static decodeResponse(clientMessage: ClientMessage, toObjectFunction: (data: Data) => any = null) {
+    static decodeResponse(clientMessage: ClientInputMessage, toObjectFunction: (data: Data) => any = null) {
         // Decode response from client message
         var parameters: any = {
             'readCount': null,

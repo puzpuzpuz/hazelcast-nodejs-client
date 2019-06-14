@@ -80,7 +80,7 @@ import {assertArray, assertNotNull, getSortedQueryResultSet} from '../Util';
 import {BaseProxy} from './BaseProxy';
 import {IMap} from './IMap';
 import {EntryEvent} from '../core/EntryListener';
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 
 export class MapProxy<K, V> extends BaseProxy implements IMap<K, V> {
     aggregate<R>(aggregator: Aggregator<R>): Promise<R> {
@@ -626,20 +626,20 @@ export class MapProxy<K, V> extends BaseProxy implements IMap<K, V> {
             listenerHandler = MapAddEntryListenerCodec.handle;
         }
         return this.client.getListenerService()
-            .registerListener(codec, (m: ClientMessage) => {
+            .registerListener(codec, (m: ClientInputMessage) => {
                 listenerHandler(m, entryEventHandler, toObject);
             });
     }
 
     private createEntryListenerToKey(name: string, keyData: Data, includeValue: boolean, flags: any): ListenerMessageCodec {
         return {
-            encodeAddRequest(localOnly: boolean): ClientMessage {
+            encodeAddRequest(localOnly: boolean): ClientOutputMessage {
                 return MapAddEntryListenerToKeyCodec.encodeRequest(name, keyData, includeValue, flags, localOnly);
             },
-            decodeAddResponse(msg: ClientMessage): string {
+            decodeAddResponse(msg: ClientInputMessage): string {
                 return MapAddEntryListenerToKeyCodec.decodeResponse(msg).response;
             },
-            encodeRemoveRequest(listenerId: string): ClientMessage {
+            encodeRemoveRequest(listenerId: string): ClientOutputMessage {
                 return MapRemoveEntryListenerCodec.encodeRequest(name, listenerId);
             },
         };
@@ -648,14 +648,14 @@ export class MapProxy<K, V> extends BaseProxy implements IMap<K, V> {
     private createEntryListenerToKeyWithPredicate(name: string, keyData: Data, predicateData: Data, includeValue: boolean,
                                                   flags: any): ListenerMessageCodec {
         return {
-            encodeAddRequest(localOnly: boolean): ClientMessage {
+            encodeAddRequest(localOnly: boolean): ClientOutputMessage {
                 return MapAddEntryListenerToKeyWithPredicateCodec.encodeRequest(name, keyData, predicateData, includeValue,
                     flags, localOnly);
             },
-            decodeAddResponse(msg: ClientMessage): string {
+            decodeAddResponse(msg: ClientInputMessage): string {
                 return MapAddEntryListenerToKeyWithPredicateCodec.decodeResponse(msg).response;
             },
-            encodeRemoveRequest(listenerId: string): ClientMessage {
+            encodeRemoveRequest(listenerId: string): ClientOutputMessage {
                 return MapRemoveEntryListenerCodec.encodeRequest(name, listenerId);
             },
         };
@@ -664,13 +664,13 @@ export class MapProxy<K, V> extends BaseProxy implements IMap<K, V> {
     private createEntryListenerWithPredicate(name: string, predicateData: Data, includeValue: boolean,
                                              flags: any): ListenerMessageCodec {
         return {
-            encodeAddRequest(localOnly: boolean): ClientMessage {
+            encodeAddRequest(localOnly: boolean): ClientOutputMessage {
                 return MapAddEntryListenerWithPredicateCodec.encodeRequest(name, predicateData, includeValue, flags, localOnly);
             },
-            decodeAddResponse(msg: ClientMessage): string {
+            decodeAddResponse(msg: ClientInputMessage): string {
                 return MapAddEntryListenerWithPredicateCodec.decodeResponse(msg).response;
             },
-            encodeRemoveRequest(listenerId: string): ClientMessage {
+            encodeRemoveRequest(listenerId: string): ClientOutputMessage {
                 return MapRemoveEntryListenerCodec.encodeRequest(name, listenerId);
             },
         };
@@ -678,13 +678,13 @@ export class MapProxy<K, V> extends BaseProxy implements IMap<K, V> {
 
     private createEntryListener(name: string, includeValue: boolean, flags: any): ListenerMessageCodec {
         return {
-            encodeAddRequest(localOnly: boolean): ClientMessage {
+            encodeAddRequest(localOnly: boolean): ClientOutputMessage {
                 return MapAddEntryListenerCodec.encodeRequest(name, includeValue, flags, localOnly);
             },
-            decodeAddResponse(msg: ClientMessage): string {
+            decodeAddResponse(msg: ClientInputMessage): string {
                 return MapAddEntryListenerCodec.decodeResponse(msg).response;
             },
-            encodeRemoveRequest(listenerId: string): ClientMessage {
+            encodeRemoveRequest(listenerId: string): ClientOutputMessage {
                 return MapRemoveEntryListenerCodec.encodeRequest(name, listenerId);
             },
         };

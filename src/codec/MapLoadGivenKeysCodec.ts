@@ -15,7 +15,7 @@
  */
 
 /* tslint:disable */
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 import {BitsUtil} from '../BitsUtil';
 import {MapMessageType} from './MapMessageType';
 
@@ -42,7 +42,7 @@ export class MapLoadGivenKeysCodec {
 
     static encodeRequest(name: string, keys: any, replaceExistingValues: boolean) {
 // Encode request into clientMessage
-        var clientMessage = ClientMessage.newClientMessage(this.calculateSize(name, keys, replaceExistingValues));
+        var clientMessage = ClientOutputMessage.newClientMessage(this.calculateSize(name, keys, replaceExistingValues));
         clientMessage.setMessageType(REQUEST_TYPE);
         clientMessage.setRetryable(RETRYABLE);
         clientMessage.appendString(name);

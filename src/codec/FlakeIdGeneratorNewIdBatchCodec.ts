@@ -15,7 +15,7 @@
  */
 
 /* tslint:disable */
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 import {BitsUtil} from '../BitsUtil';
 import {Data} from '../serialization/Data';
 import {FlakeIdGeneratorMessageType} from './FlakeIdGeneratorMessageType';
@@ -34,7 +34,7 @@ export class FlakeIdGeneratorNewIdBatchCodec {
     }
 
     static encodeRequest(name: string, batchSize: number) {
-        var clientMessage = ClientMessage.newClientMessage(this.calculateSize(name, batchSize));
+        var clientMessage = ClientOutputMessage.newClientMessage(this.calculateSize(name, batchSize));
         clientMessage.setMessageType(REQUEST_TYPE);
         clientMessage.setRetryable(RETRYABLE);
         clientMessage.appendString(name);
@@ -43,7 +43,7 @@ export class FlakeIdGeneratorNewIdBatchCodec {
         return clientMessage;
     }
 
-    static decodeResponse(clientMessage: ClientMessage, toObjectFunction: (data: Data) => any = null) {
+    static decodeResponse(clientMessage: ClientInputMessage, toObjectFunction: (data: Data) => any = null) {
         var parameters: any = {
             'base': null,
             'increment': null,

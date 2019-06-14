@@ -31,7 +31,7 @@ import {MembershipEvent} from '../core/MembershipEvent';
 import {UuidUtil} from '../util/UuidUtil';
 import {ILogger} from '../logging/ILogger';
 import Address = require('../Address');
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 
 export enum MemberEvent {
     ADDED = 1,
@@ -195,14 +195,14 @@ export class ClusterService {
     initMembershipListener(): Promise<void> {
         const request = ClientAddMembershipListenerCodec.encodeRequest(false);
 
-        const handler = (m: ClientMessage) => {
+        const handler = (m: ClientInputMessage) => {
             const handleMember = this.handleMember.bind(this);
             const handleMemberList = this.handleMemberList.bind(this);
             const handleAttributeChange = this.handleMemberAttributeChange.bind(this);
             ClientAddMembershipListenerCodec.handle(m, handleMember, handleMemberList, handleAttributeChange, null);
         };
         return this.client.getInvocationService().invokeOnConnection(this.getOwnerConnection(), request, handler)
-            .then((resp: ClientMessage) => {
+            .then((resp: ClientInputMessage) => {
                 this.logger.trace('ClusterService', 'Registered listener with id '
                     + ClientAddMembershipListenerCodec.decodeResponse(resp).response);
             });

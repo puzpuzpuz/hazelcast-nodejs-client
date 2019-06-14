@@ -15,7 +15,7 @@
  */
 
 /* tslint:disable */
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 import {BitsUtil} from '../BitsUtil';
 import {Data} from '../serialization/Data';
 import {ListMessageType} from './ListMessageType';
@@ -39,7 +39,7 @@ export class ListAddWithIndexCodec {
 
     static encodeRequest(name: string, index: number, value: Data) {
 // Encode request into clientMessage
-        var clientMessage = ClientMessage.newClientMessage(this.calculateSize(name, index, value));
+        var clientMessage = ClientOutputMessage.newClientMessage(this.calculateSize(name, index, value));
         clientMessage.setMessageType(REQUEST_TYPE);
         clientMessage.setRetryable(RETRYABLE);
         clientMessage.appendString(name);

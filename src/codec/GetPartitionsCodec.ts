@@ -15,17 +15,17 @@
  */
 
 /* tslint:disable */
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 import Address = require('../Address');
 
 class GetPartitionsCodec {
-    static encodeRequest(): ClientMessage {
-        var clientMessage = ClientMessage.newClientMessage(0);
+    static encodeRequest(): ClientOutputMessage {
+        var clientMessage = ClientOutputMessage.newClientMessage(0);
         clientMessage.setMessageType(0x0008);
         return clientMessage;
     }
 
-    static decodeResponse(clientMessage: ClientMessage): { [partitionId: number]: Address } {
+    static decodeResponse(clientMessage: ClientInputMessage): { [partitionId: number]: Address } {
         var result: { [partitionId: number]: Address } = {};
         var size = clientMessage.readInt32();
 

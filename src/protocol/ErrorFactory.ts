@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 import {
     AuthenticationError,
     CallerNotMemberError,
@@ -115,7 +115,7 @@ export class ClientErrorFactory {
         this.register(ClientProtocolErrorCodes.CONSISTENCY_LOST_EXCEPTION, (m, c) => new ConsistencyLostError(m, c));
     }
 
-    createErrorFromClientMessage(clientMessage: ClientMessage): Error {
+    createErrorFromClientMessage(clientMessage: ClientInputMessage): Error {
         const errorCodec = ErrorCodec.decode(clientMessage);
         return this.createError(errorCodec.errorCode, errorCodec.className, errorCodec.message, null);
     }

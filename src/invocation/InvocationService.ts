@@ -31,7 +31,7 @@ import {ClientConnection} from './ClientConnection';
 import {DeferredPromise} from '../Util';
 import {ILogger} from '../logging/ILogger';
 import Address = require('../Address');
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 
 const EXCEPTION_MESSAGE_TYPE = 109;
 const MAX_FAST_INVOCATION_COUNT = 5;
@@ -48,7 +48,7 @@ export class Invocation {
     /**
      * Representatiton of the request in binary form.
      */
-    request: ClientMessage;
+    request: ClientOutputMessage;
     /**
      * Partition id of the request. If request is not bound to a specific partition, should be set to -1.
      */
@@ -68,7 +68,7 @@ export class Invocation {
     /**
      * Promise managing object.
      */
-    deferred: Promise.Resolver<ClientMessage>;
+    deferred: Promise.Resolver<ClientInputMessage>;
     invokeCount: number = 0;
     /**
      * If this is an event listener registration, handler should be set to the function to be called on events.
@@ -76,7 +76,7 @@ export class Invocation {
      */
     handler: (...args: any[]) => any;
 
-    constructor(client: HazelcastClient, request: ClientMessage) {
+    constructor(client: HazelcastClient, request: ClientOutputMessage) {
         this.client = client;
         this.invocationService = client.getInvocationService();
         this.deadline = new Date(new Date().getTime() + this.invocationService.getInvocationTimeoutMillis());
@@ -132,9 +132,9 @@ export class InvocationService {
         this.isShutdown = true;
     }
 
-    invoke(invocation: Invocation): Promise<ClientMessage> {
+    invoke(invocation: Invocation): Promise<ClientInputMessage> {
         const newCorrelationId = Long.fromNumber(this.correlationCounter++);
-        invocation.deferred = DeferredPromise<ClientMessage>();
+        invocation.deferred = DeferredPromise<ClientInputMessage>();
         invocation.request.setCorrelationId(newCorrelationId);
         this.doInvoke(invocation);
         return invocation.deferred.promise;
@@ -147,8 +147,8 @@ export class InvocationService {
      * @param handler called with values returned from server for this invocation.
      * @returns
      */
-    invokeOnConnection(connection: ClientConnection, request: ClientMessage,
-                       handler?: (...args: any[]) => any): Promise<ClientMessage> {
+    invokeOnConnection(connection: ClientConnection, request: ClientOutputMessage,
+                       handler?: (...args: any[]) => any): Promise<ClientInputMessage> {
         const invocation = new Invocation(this.client, request);
         invocation.connection = connection;
         if (handler) {
@@ -163,7 +163,7 @@ export class InvocationService {
      * @param partitionId
      * @returns
      */
-    invokeOnPartition(request: ClientMessage, partitionId: number): Promise<ClientMessage> {
+    invokeOnPartition(request: ClientOutputMessage, partitionId: number): Promise<ClientInputMessage> {
         const invocation = new Invocation(this.client, request);
         invocation.partitionId = partitionId;
         return this.invoke(invocation);
@@ -175,7 +175,7 @@ export class InvocationService {
      * @param target
      * @returns
      */
-    invokeOnTarget(request: ClientMessage, target: Address): Promise<ClientMessage> {
+    invokeOnTarget(request: ClientOutputMessage, target: Address): Promise<ClientInputMessage> {
         const invocation = new Invocation(this.client, request);
         invocation.address = target;
         return this.invoke(invocation);
@@ -187,7 +187,7 @@ export class InvocationService {
      * @param request
      * @returns
      */
-    invokeOnRandomTarget(request: ClientMessage): Promise<ClientMessage> {
+    invokeOnRandomTarget(request: ClientOutputMessage): Promise<ClientInputMessage> {
         return this.invoke(new Invocation(this.client, request));
     }
 
@@ -214,7 +214,7 @@ export class InvocationService {
      * @param buffer
      */
     processResponse(buffer: Buffer): void {
-        const clientMessage = new ClientMessage(buffer);
+        const clientMessage = new ClientInputMessage(buffer);
         const correlationId = clientMessage.getCorrelationId().toNumber();
         const messageType = clientMessage.getMessageType();
 
@@ -305,7 +305,7 @@ export class InvocationService {
     }
 
     private write(invocation: Invocation, connection: ClientConnection): Promise<void> {
-        return connection.write(invocation.request.getBuffer());
+        return connection.write(invocation.request);
     }
 
     private notifyError(invocation: Invocation, error: Error): void {

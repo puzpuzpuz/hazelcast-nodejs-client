@@ -15,7 +15,7 @@
  */
 
 /* tslint:disable */
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 import Address = require('../Address');
 import {BitsUtil} from '../BitsUtil';
 import {AddressCodec} from './AddressCodec';
@@ -40,7 +40,7 @@ export class ClientCreateProxyCodec {
 
     static encodeRequest(name: string, serviceName: string, target: Address) {
 // Encode request into clientMessage
-        var clientMessage = ClientMessage.newClientMessage(this.calculateSize(name, serviceName, target));
+        var clientMessage = ClientOutputMessage.newClientMessage(this.calculateSize(name, serviceName, target));
         clientMessage.setMessageType(REQUEST_TYPE);
         clientMessage.setRetryable(RETRYABLE);
         clientMessage.appendString(name);

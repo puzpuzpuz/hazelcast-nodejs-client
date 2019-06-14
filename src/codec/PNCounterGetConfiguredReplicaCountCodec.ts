@@ -15,7 +15,7 @@
  */
 
 /* tslint:disable */
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 import {BitsUtil} from '../BitsUtil';
 import {Data} from '../serialization/Data';
 import {PNCounterMessageType} from './PNCounterMessageType';
@@ -33,7 +33,7 @@ export class PNCounterGetConfiguredReplicaCountCodec {
     }
 
     static encodeRequest(name: string) {
-        var clientMessage = ClientMessage.newClientMessage(this.calculateSize(name));
+        var clientMessage = ClientOutputMessage.newClientMessage(this.calculateSize(name));
         clientMessage.setMessageType(REQUEST_TYPE);
         clientMessage.setRetryable(RETRYABLE);
         clientMessage.appendString(name);
@@ -41,7 +41,7 @@ export class PNCounterGetConfiguredReplicaCountCodec {
         return clientMessage;
     }
 
-    static decodeResponse(clientMessage: ClientMessage, toObjectFunction: (data: Data) => any = null) {
+    static decodeResponse(clientMessage: ClientInputMessage, toObjectFunction: (data: Data) => any = null) {
         var parameters: any = {
             'response': null
         };

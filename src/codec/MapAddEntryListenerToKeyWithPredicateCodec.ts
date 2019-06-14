@@ -15,7 +15,7 @@
  */
 
 /* tslint:disable */
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 import {BitsUtil} from '../BitsUtil';
 import {Data} from '../serialization/Data';
 import {MapMessageType} from './MapMessageType';
@@ -42,7 +42,7 @@ export class MapAddEntryListenerToKeyWithPredicateCodec {
 
     static encodeRequest(name: string, key: Data, predicate: Data, includeValue: boolean, listenerFlags: number, localOnly: boolean) {
 // Encode request into clientMessage
-        var clientMessage = ClientMessage.newClientMessage(this.calculateSize(name, key, predicate, includeValue, listenerFlags, localOnly));
+        var clientMessage = ClientOutputMessage.newClientMessage(this.calculateSize(name, key, predicate, includeValue, listenerFlags, localOnly));
         clientMessage.setMessageType(REQUEST_TYPE);
         clientMessage.setRetryable(RETRYABLE);
         clientMessage.appendString(name);
@@ -55,7 +55,7 @@ export class MapAddEntryListenerToKeyWithPredicateCodec {
         return clientMessage;
     }
 
-    static decodeResponse(clientMessage: ClientMessage, toObjectFunction: (data: Data) => any = null) {
+    static decodeResponse(clientMessage: ClientInputMessage, toObjectFunction: (data: Data) => any = null) {
         // Decode response from client message
         var parameters: any = {
             'response': null
@@ -66,7 +66,7 @@ export class MapAddEntryListenerToKeyWithPredicateCodec {
         return parameters;
     }
 
-    static handle(clientMessage: ClientMessage, handleEventEntry: any, toObjectFunction: (data: Data) => any = null) {
+    static handle(clientMessage: ClientInputMessage, handleEventEntry: any, toObjectFunction: (data: Data) => any = null) {
 
         var messageType = clientMessage.getMessageType();
         if (messageType === BitsUtil.EVENT_ENTRY && handleEventEntry !== null) {

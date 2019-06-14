@@ -15,7 +15,7 @@
  */
 
 /* tslint:disable */
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 import {BitsUtil} from '../BitsUtil';
 import {Data} from '../serialization/Data';
 import {MapMessageType} from './MapMessageType';
@@ -40,7 +40,7 @@ export class MapExecuteOnKeyCodec {
 
     static encodeRequest(name: string, entryProcessor: Data, key: Data, threadId: any) {
 // Encode request into clientMessage
-        var clientMessage = ClientMessage.newClientMessage(this.calculateSize(name, entryProcessor, key, threadId));
+        var clientMessage = ClientOutputMessage.newClientMessage(this.calculateSize(name, entryProcessor, key, threadId));
         clientMessage.setMessageType(REQUEST_TYPE);
         clientMessage.setRetryable(RETRYABLE);
         clientMessage.appendString(name);
@@ -51,7 +51,7 @@ export class MapExecuteOnKeyCodec {
         return clientMessage;
     }
 
-    static decodeResponse(clientMessage: ClientMessage, toObjectFunction: (data: Data) => any = null) {
+    static decodeResponse(clientMessage: ClientInputMessage, toObjectFunction: (data: Data) => any = null) {
         // Decode response from client message
         var parameters: any = {
             'response': null

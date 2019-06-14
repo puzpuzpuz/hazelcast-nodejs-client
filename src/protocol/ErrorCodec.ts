@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 import {StackTraceElementCodec} from './StackTraceElementCodec';
 
 export class ErrorCodec {
@@ -26,7 +26,7 @@ export class ErrorCodec {
     causeErrorCode: number = null;
     causeClassName: string = null;
 
-    static decode(clientMessage: ClientMessage): ErrorCodec {
+    static decode(clientMessage: ClientInputMessage): ErrorCodec {
         const exception = new ErrorCodec();
 
         exception.errorCode = clientMessage.readInt32();

@@ -19,7 +19,7 @@ import {BuildInfo} from '../BuildInfo';
 import HazelcastClient from '../HazelcastClient';
 import {Data} from '../serialization/Data';
 import Address = require('../Address');
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 
 /**
  * Common super class for any proxy.
@@ -97,7 +97,7 @@ export class BaseProxy {
 
     protected encodeInvokeOnAddress<T>(codec: any, address: Address, ...codecArguments: any[]): Promise<T> {
         const clientMessage = codec.encodeRequest(this.name, ...codecArguments);
-        const invocation: Promise<ClientMessage> = this.client.getInvocationService().invokeOnTarget(clientMessage, address);
+        const invocation: Promise<ClientInputMessage> = this.client.getInvocationService().invokeOnTarget(clientMessage, address);
         return this.createPromise<T>(codec, invocation);
     }
 
@@ -110,7 +110,7 @@ export class BaseProxy {
      */
     protected encodeInvokeOnPartition<T>(codec: any, partitionId: number, ...codecArguments: any[]): Promise<T> {
         const clientMessage = codec.encodeRequest(this.name, ...codecArguments);
-        const invocationResponse: Promise<ClientMessage> = this.client.getInvocationService()
+        const invocationResponse: Promise<ClientInputMessage> = this.client.getInvocationService()
             .invokeOnPartition(clientMessage, partitionId);
 
         return this.createPromise<T>(codec, invocationResponse);
@@ -142,9 +142,9 @@ export class BaseProxy {
         return BuildInfo.UNKNOWN_VERSION_ID;
     }
 
-    private createPromise<T>(codec: any, promise: Promise<ClientMessage>): Promise<T> {
+    private createPromise<T>(codec: any, promise: Promise<ClientInputMessage>): Promise<T> {
         const toObject = this.toObject.bind(this);
-        return promise.then(function (clientMessage: ClientMessage): any {
+        return promise.then(function (clientMessage: ClientInputMessage): any {
             if (codec.decodeResponse) {
                 const raw = codec.decodeResponse(clientMessage, toObject);
 

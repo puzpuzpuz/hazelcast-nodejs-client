@@ -15,7 +15,7 @@
  */
 
 /* tslint:disable */
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 import Address = require('../Address');
 import {BitsUtil} from '../BitsUtil';
 import {AddressCodec} from './AddressCodec';
@@ -45,7 +45,7 @@ export class MapFetchNearCacheInvalidationMetadataCodec {
 
     static encodeRequest(names: any, address: Address) {
 // Encode request into clientMessage
-        var clientMessage = ClientMessage.newClientMessage(this.calculateSize(names, address));
+        var clientMessage = ClientOutputMessage.newClientMessage(this.calculateSize(names, address));
         clientMessage.setMessageType(REQUEST_TYPE);
         clientMessage.setRetryable(RETRYABLE);
         clientMessage.appendInt32(names.length);
@@ -59,7 +59,7 @@ export class MapFetchNearCacheInvalidationMetadataCodec {
         return clientMessage;
     }
 
-    static decodeResponse(clientMessage: ClientMessage, toObjectFunction: (data: Data) => any = null) {
+    static decodeResponse(clientMessage: ClientInputMessage, toObjectFunction: (data: Data) => any = null) {
         // Decode response from client message
         var parameters: any = {
             'namePartitionSequenceList': null,

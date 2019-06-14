@@ -15,7 +15,7 @@
  */
 
 /* tslint:disable */
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 import {BitsUtil} from '../BitsUtil';
 import {ClientMessageType} from './ClientMessageType';
 
@@ -46,7 +46,7 @@ export class ClientDeployClassesCodec {
 
     static encodeRequest(classDefinitions: any) {
 // Encode request into clientMessage
-        var clientMessage = ClientMessage.newClientMessage(this.calculateSize(classDefinitions));
+        var clientMessage = ClientOutputMessage.newClientMessage(this.calculateSize(classDefinitions));
         clientMessage.setMessageType(REQUEST_TYPE);
         clientMessage.setRetryable(RETRYABLE);
         clientMessage.appendInt32(classDefinitions.length);

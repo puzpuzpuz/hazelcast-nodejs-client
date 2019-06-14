@@ -15,7 +15,7 @@
  */
 
 /* tslint:disable */
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 import {BitsUtil} from '../BitsUtil';
 import {LockMessageType} from './LockMessageType';
 
@@ -39,7 +39,7 @@ export class LockLockCodec {
 
     static encodeRequest(name: string, leaseTime: any, threadId: any, referenceId: any) {
 // Encode request into clientMessage
-        var clientMessage = ClientMessage.newClientMessage(this.calculateSize(name, leaseTime, threadId, referenceId));
+        var clientMessage = ClientOutputMessage.newClientMessage(this.calculateSize(name, leaseTime, threadId, referenceId));
         clientMessage.setMessageType(REQUEST_TYPE);
         clientMessage.setRetryable(RETRYABLE);
         clientMessage.appendString(name);

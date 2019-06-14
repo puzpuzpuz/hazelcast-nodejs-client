@@ -43,7 +43,7 @@ import {DistributedObjectEvent, DistributedObjectListener} from '../core/Distrib
 import {DeferredPromise} from '../Util';
 import {ILogger} from '../logging/ILogger';
 import Address = require('../Address');
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 
 export class ProxyManager {
     public static readonly MAP_SERVICE: string = 'hz:impl:mapService';
@@ -132,7 +132,7 @@ export class ProxyManager {
     }
 
     addDistributedObjectListener(distributedObjectListener: DistributedObjectListener): Promise<string> {
-        const handler = function (clientMessage: ClientMessage): void {
+        const handler = function (clientMessage: ClientInputMessage): void {
             const converterFunc = (objectName: string, serviceName: string, eventType: string) => {
                 eventType = eventType.toLowerCase();
                 const distributedObjectEvent = new DistributedObjectEvent(eventType, serviceName, objectName);
@@ -155,8 +155,8 @@ export class ProxyManager {
         return true;
     }
 
-    private createProxy(proxyObject: DistributedObject): Promise<ClientMessage> {
-        const promise = DeferredPromise<ClientMessage>();
+    private createProxy(proxyObject: DistributedObject): Promise<ClientInputMessage> {
+        const promise = DeferredPromise<ClientInputMessage>();
         this.initializeProxy(proxyObject, promise, Date.now() + this.invocationTimeoutMillis);
         return promise.promise;
     }
@@ -179,7 +179,7 @@ export class ProxyManager {
         }
     }
 
-    private initializeProxy(proxyObject: DistributedObject, promise: Promise.Resolver<ClientMessage>, deadline: number): void {
+    private initializeProxy(proxyObject: DistributedObject, promise: Promise.Resolver<ClientInputMessage>, deadline: number): void {
         if (Date.now() <= deadline) {
             const address: Address = this.findNextAddress();
             const request = ClientCreateProxyCodec.encodeRequest(proxyObject.getName(), proxyObject.getServiceName(), address);
@@ -203,13 +203,13 @@ export class ProxyManager {
 
     private createDistributedObjectListener(): ListenerMessageCodec {
         return {
-            encodeAddRequest(localOnly: boolean): ClientMessage {
+            encodeAddRequest(localOnly: boolean): ClientOutputMessage {
                 return ClientAddDistributedObjectListenerCodec.encodeRequest(localOnly);
             },
-            decodeAddResponse(msg: ClientMessage): string {
+            decodeAddResponse(msg: ClientInputMessage): string {
                 return ClientAddDistributedObjectListenerCodec.decodeResponse(msg).response;
             },
-            encodeRemoveRequest(listenerId: string): ClientMessage {
+            encodeRemoveRequest(listenerId: string): ClientOutputMessage {
                 return ClientRemoveDistributedObjectListenerCodec.encodeRequest(listenerId);
             },
         };

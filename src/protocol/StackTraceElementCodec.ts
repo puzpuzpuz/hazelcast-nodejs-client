@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 
 export class StackTraceElementCodec {
     declaringClass: string = null;
@@ -22,7 +22,7 @@ export class StackTraceElementCodec {
     fileName: string = null;
     lineNumber: number = null;
 
-    static decode(payload: ClientMessage): StackTraceElementCodec {
+    static decode(payload: ClientInputMessage): StackTraceElementCodec {
         const stackTraceElement = new StackTraceElementCodec();
 
         stackTraceElement.declaringClass = payload.readString();

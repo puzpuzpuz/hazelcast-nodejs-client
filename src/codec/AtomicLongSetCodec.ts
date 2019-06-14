@@ -15,7 +15,7 @@
  */
 
 /* tslint:disable */
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 import {BitsUtil} from '../BitsUtil';
 import {AtomicLongMessageType} from './AtomicLongMessageType';
 
@@ -37,7 +37,7 @@ export class AtomicLongSetCodec {
 
     static encodeRequest(name: string, newValue: any) {
 // Encode request into clientMessage
-        var clientMessage = ClientMessage.newClientMessage(this.calculateSize(name, newValue));
+        var clientMessage = ClientOutputMessage.newClientMessage(this.calculateSize(name, newValue));
         clientMessage.setMessageType(REQUEST_TYPE);
         clientMessage.setRetryable(RETRYABLE);
         clientMessage.appendString(name);

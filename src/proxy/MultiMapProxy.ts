@@ -46,7 +46,7 @@ import {MultiMapValueCountCodec} from './../codec/MultiMapValueCountCodec';
 import {MultiMapValuesCodec} from './../codec/MultiMapValuesCodec';
 import {BaseProxy} from './BaseProxy';
 import {MultiMap} from './MultiMap';
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 import {MapEvent} from '../core/MapListener';
 
 export class MultiMapProxy<K, V> extends BaseProxy implements MultiMap<K, V> {
@@ -173,14 +173,14 @@ export class MultiMapProxy<K, V> extends BaseProxy implements MultiMap<K, V> {
 
         if (key) {
             const keyData = this.toData(key);
-            const handler = (m: ClientMessage) => {
+            const handler = (m: ClientInputMessage) => {
                 MultiMapAddEntryListenerToKeyCodec.handle(m, entryEventHandler, toObject);
             };
             const codec = this.createEntryListenerToKey(this.name, keyData, includeValue);
 
             return this.client.getListenerService().registerListener(codec, handler);
         } else {
-            const listenerHandler = (m: ClientMessage) => {
+            const listenerHandler = (m: ClientInputMessage) => {
                 MultiMapAddEntryListenerCodec.handle(m, entryEventHandler, toObject);
             };
             const codec = this.createEntryListener(this.name, includeValue);
@@ -225,13 +225,13 @@ export class MultiMapProxy<K, V> extends BaseProxy implements MultiMap<K, V> {
 
     private createEntryListenerToKey(name: string, keyData: Data, includeValue: boolean): ListenerMessageCodec {
         return {
-            encodeAddRequest(localOnly: boolean): ClientMessage {
+            encodeAddRequest(localOnly: boolean): ClientOutputMessage {
                 return MultiMapAddEntryListenerToKeyCodec.encodeRequest(name, keyData, includeValue, localOnly);
             },
-            decodeAddResponse(msg: ClientMessage): string {
+            decodeAddResponse(msg: ClientInputMessage): string {
                 return MultiMapAddEntryListenerToKeyCodec.decodeResponse(msg).response;
             },
-            encodeRemoveRequest(listenerId: string): ClientMessage {
+            encodeRemoveRequest(listenerId: string): ClientOutputMessage {
                 return MultiMapRemoveEntryListenerCodec.encodeRequest(name, listenerId);
             },
         };
@@ -239,13 +239,13 @@ export class MultiMapProxy<K, V> extends BaseProxy implements MultiMap<K, V> {
 
     private createEntryListener(name: string, includeValue: boolean): ListenerMessageCodec {
         return {
-            encodeAddRequest(localOnly: boolean): ClientMessage {
+            encodeAddRequest(localOnly: boolean): ClientOutputMessage {
                 return MultiMapAddEntryListenerCodec.encodeRequest(name, includeValue, localOnly);
             },
-            decodeAddResponse(msg: ClientMessage): string {
+            decodeAddResponse(msg: ClientInputMessage): string {
                 return MultiMapAddEntryListenerCodec.decodeResponse(msg).response;
             },
-            encodeRemoveRequest(listenerId: string): ClientMessage {
+            encodeRemoveRequest(listenerId: string): ClientOutputMessage {
                 return MultiMapRemoveEntryListenerCodec.encodeRequest(name, listenerId);
             },
         };

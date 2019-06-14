@@ -15,7 +15,7 @@
  */
 
 /* tslint:disable */
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 import {UUIDCodec} from './UUIDCodec';
 import {Data} from '../serialization/Data';
 import {MapMessageType} from './MapMessageType';
@@ -36,14 +36,14 @@ export class MapAssignAndGetUuidsCodec {
 
     static encodeRequest() {
 // Encode request into clientMessage
-        var clientMessage = ClientMessage.newClientMessage(this.calculateSize());
+        var clientMessage = ClientOutputMessage.newClientMessage(this.calculateSize());
         clientMessage.setMessageType(REQUEST_TYPE);
         clientMessage.setRetryable(RETRYABLE);
         clientMessage.updateFrameLength();
         return clientMessage;
     }
 
-    static decodeResponse(clientMessage: ClientMessage, toObjectFunction: (data: Data) => any = null) {
+    static decodeResponse(clientMessage: ClientInputMessage, toObjectFunction: (data: Data) => any = null) {
         // Decode response from client message
         var parameters: any = {
             'partitionUuidList': null

@@ -27,7 +27,7 @@ import {StaleReadDetectorImpl} from '../nearcache/StaleReadDetectorImpl';
 import {Data} from '../serialization/Data';
 import {MapProxy} from './MapProxy';
 import {BuildInfo} from '../BuildInfo';
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 
 export class NearCachedMapProxy<K, V> extends MapProxy<K, V> {
 
@@ -220,26 +220,26 @@ export class NearCachedMapProxy<K, V> extends MapProxy<K, V> {
     private createInvalidationListenerCodec(name: string, flags: number): ListenerMessageCodec {
         if (this.supportsRepairableNearCache()) {
             return {
-                encodeAddRequest(localOnly: boolean): ClientMessage {
+                encodeAddRequest(localOnly: boolean): ClientOutputMessage {
                     return MapAddNearCacheInvalidationListenerCodec.encodeRequest(name, flags, localOnly);
 
                 },
-                decodeAddResponse(msg: ClientMessage): string {
+                decodeAddResponse(msg: ClientInputMessage): string {
                     return MapAddNearCacheInvalidationListenerCodec.decodeResponse(msg).response;
                 },
-                encodeRemoveRequest(listenerId: string): ClientMessage {
+                encodeRemoveRequest(listenerId: string): ClientOutputMessage {
                     return MapRemoveEntryListenerCodec.encodeRequest(name, listenerId);
                 },
             };
         } else {
             return {
-                encodeAddRequest(localOnly: boolean): ClientMessage {
+                encodeAddRequest(localOnly: boolean): ClientOutputMessage {
                     return MapAddNearCacheEntryListenerCodec.encodeRequest(name, flags, localOnly);
                 },
-                decodeAddResponse(msg: ClientMessage): string {
+                decodeAddResponse(msg: ClientInputMessage): string {
                     return MapAddNearCacheEntryListenerCodec.decodeResponse(msg).response;
                 },
-                encodeRemoveRequest(listenerId: string): ClientMessage {
+                encodeRemoveRequest(listenerId: string): ClientOutputMessage {
                     return MapRemoveEntryListenerCodec.encodeRequest(name, listenerId);
                 },
             };
@@ -265,7 +265,7 @@ export class NearCachedMapProxy<K, V> extends MapProxy<K, V> {
             });
         };
 
-        return function (m: ClientMessage): void {
+        return function (m: ClientInputMessage): void {
             MapAddNearCacheEntryListenerCodec.handle(m, handle, handleBatch);
         };
     }
@@ -282,7 +282,7 @@ export class NearCachedMapProxy<K, V> extends MapProxy<K, V> {
                 repairingHandler.handleBatch(keys, sourceUuids, partititonUuids, sequences);
             };
 
-            return function (m: ClientMessage): void {
+            return function (m: ClientInputMessage): void {
                 MapAddNearCacheInvalidationListenerCodec.handle(m, handle, handleBatch);
             };
         });

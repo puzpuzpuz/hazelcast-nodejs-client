@@ -23,16 +23,17 @@ import HazelcastClient from '../HazelcastClient';
 import {IOError} from '../HazelcastError';
 import Address = require('../Address');
 import {DeferredPromise} from '../Util';
+import { ClientOutputMessage } from '../ClientMessage';
 
 interface OutputQueueItem {
-    buffer: Buffer;
+    request: ClientOutputMessage;
     resolver: Promise.Resolver<void>;
 }
 
 const FROZEN_QUEUE = Object.freeze([]) as OutputQueueItem[];
 
 // TODO: cover with tests
-export class WriteQueue {
+export class OutputQueue {
 
     private socket: net.Socket;
     private queue: OutputQueueItem[] = [];
@@ -45,12 +46,12 @@ export class WriteQueue {
         this.socket = socket;
     }
 
-    push(buffer: Buffer, resolver: Promise.Resolver<void>): void {
+    push(request: ClientOutputMessage, resolver: Promise.Resolver<void>): void {
         if (this.error) {
             // if there was a write error, it's useless to keep writing to the socket
             return process.nextTick(() => resolver.reject(this.error));
         }
-        this.queue.push({ buffer, resolver });
+        this.queue.push({ request, resolver });
         this.run();
     }
 
@@ -67,15 +68,15 @@ export class WriteQueue {
             return;
         }
 
-        const buffers: Buffer[] = [];
+        let buffers: Buffer[] = [];
         const resolvers: Array<Promise.Resolver<void>> = [];
         let totalLength = 0;
 
         while (this.queue.length > 0 && totalLength < this.threshold) {
             const item = this.queue.shift();
-            const data = item.buffer;
-            totalLength += data.length;
-            buffers.push(data);
+            const data = item.request;
+            totalLength += data.getTotalSize();
+            buffers = buffers.concat(item.request.getBuffers());
             resolvers.push(item.resolver);
         }
 
@@ -132,12 +133,12 @@ export class ClientConnection {
     private connectedServerVersion: number;
     private authenticatedAsOwner: boolean;
     private socket: net.Socket;
-    private writeQueue: WriteQueue;
+    private outputQueue: OutputQueue;
 
     constructor(client: HazelcastClient, address: Address, socket: net.Socket) {
         this.client = client;
         this.socket = socket;
-        this.writeQueue = new WriteQueue(socket);
+        this.outputQueue = new OutputQueue(socket);
         this.address = address;
         this.localAddress = new Address(socket.localAddress, socket.localPort);
         this.readBuffer = Buffer.alloc(0);
@@ -167,9 +168,9 @@ export class ClientConnection {
         this.address = address;
     }
 
-    write(buffer: Buffer): Promise<void> {
+    write(request: ClientOutputMessage): Promise<void> {
         const deferred = DeferredPromise<void>();
-        this.writeQueue.push(buffer, deferred);
+        this.outputQueue.push(request, deferred);
         return deferred.promise.then(() => {
             this.lastWriteTimeMillis = Date.now();
         });

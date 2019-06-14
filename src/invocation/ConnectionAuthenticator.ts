@@ -22,7 +22,7 @@ import {ClientConnection} from './ClientConnection';
 import {ClusterService} from './ClusterService';
 import {AuthenticationError} from '../HazelcastError';
 import {ILogger} from '../logging/ILogger';
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 import {BuildInfo} from '../BuildInfo';
 
 const enum AuthenticationStatus {
@@ -46,10 +46,10 @@ export class ConnectionAuthenticator {
     }
 
     authenticate(asOwner: boolean): Promise<void> {
-        const credentials: ClientMessage = this.createCredentials(asOwner);
+        const credentials: ClientOutputMessage = this.createCredentials(asOwner);
         return this.client.getInvocationService()
             .invokeOnConnection(this.connection, credentials)
-            .then((msg: ClientMessage) => {
+            .then((msg: ClientInputMessage) => {
                 const authResponse = ClientAuthenticationCodec.decodeResponse(msg);
                 switch (authResponse.status) {
                     case AuthenticationStatus.AUTHENTICATED:
@@ -82,14 +82,14 @@ export class ConnectionAuthenticator {
             });
     }
 
-    createCredentials(asOwner: boolean): ClientMessage {
+    createCredentials(asOwner: boolean): ClientOutputMessage {
         const groupConfig = this.client.getConfig().groupConfig;
         const uuid: string = this.clusterService.uuid;
         const ownerUuid: string = this.clusterService.ownerUuid;
 
         const customCredentials = this.client.getConfig().customCredentials;
 
-        let clientMessage: ClientMessage;
+        let clientMessage: ClientOutputMessage;
 
         const clientVersion = BuildInfo.getClientVersion();
 

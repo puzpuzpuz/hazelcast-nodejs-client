@@ -42,7 +42,7 @@ import {BitsUtil} from './BitsUtil';
 import {Data} from './serialization/Data';
 import {HeapData} from './serialization/HeapData';
 
-class ClientMessage {
+export class ClientInputMessage {
 
     private buffer: Buffer;
     private cursor: number = BitsUtil.HEADER_SIZE;
@@ -50,24 +50,6 @@ class ClientMessage {
 
     constructor(buffer: Buffer) {
         this.buffer = buffer;
-    }
-
-    public static newClientMessage(payloadSize: number): ClientMessage {
-        const totalSize = BitsUtil.HEADER_SIZE + payloadSize;
-        const buffer = Buffer.allocUnsafe(totalSize);
-        const message = new ClientMessage(buffer);
-        message.setDataOffset(BitsUtil.HEADER_SIZE);
-        message.setVersion(BitsUtil.VERSION);
-        message.setFrameLength(totalSize);
-        message.setFlags(0xc0);
-        message.setPartitionId(-1);
-        return message;
-    }
-
-    copy(): ClientMessage {
-        const message = new ClientMessage(Buffer.from(this.buffer));
-        message.isRetryable = this.isRetryable;
-        return message;
     }
 
     getBuffer(): Buffer {
@@ -260,4 +242,144 @@ class ClientMessage {
     }
 }
 
-export = ClientMessage;
+export class ClientOutputMessage {
+
+    private header: Buffer;
+    private payload: Buffer[] = [];
+    private totalSize: number;
+    private correlationId: Long;
+    private isRetryable: boolean;
+
+    public static initialMessage(): ClientOutputMessage {
+        const message = new ClientOutputMessage();
+        message.header = Buffer.from('CB2');
+        message.totalSize = message.header.length;
+        return message;
+    }
+
+    public static newClientMessage(payloadSize: number): ClientOutputMessage {
+        const message = new ClientOutputMessage();
+        message.totalSize = BitsUtil.HEADER_SIZE + payloadSize;
+        message.header = Buffer.allocUnsafe(BitsUtil.HEADER_SIZE);
+        message.setDataOffset(BitsUtil.HEADER_SIZE);
+        message.setVersion(BitsUtil.VERSION);
+        message.setFrameLength(message.totalSize);
+        message.setFlags(0xc0);
+        message.setPartitionId(-1);
+        return message;
+    }
+
+    // TODO this implementation is not safe
+    copy(): ClientOutputMessage {
+        const message = new ClientOutputMessage();
+        message.header = Buffer.from(this.header);
+        message.payload = this.payload;
+        message.isRetryable = this.isRetryable;
+        return message;
+    }
+
+    getBuffers(): Buffer[] {
+        return [this.header, ...this.payload];
+    }
+
+    getTotalSize(): number {
+        return this.totalSize;
+    }
+
+    getCorrelationId(): Long {
+        return this.correlationId;
+    }
+
+    setCorrelationId(value: Long): void {
+        if (!Long.isLong(value)) {
+            value = Long.fromValue(value);
+        }
+
+        this.header.writeInt32LE(value.low, BitsUtil.CORRELATION_ID_FIELD_OFFSET);
+        this.header.writeInt32LE(value.high, BitsUtil.CORRELATION_ID_FIELD_OFFSET + 4);
+        this.correlationId = value;
+    }
+
+    setPartitionId(value: number): void {
+        this.header.writeInt32LE(value, BitsUtil.PARTITION_ID_FIELD_OFFSET);
+    }
+
+    setVersion(value: number): void {
+        this.header.writeUInt8(value, BitsUtil.VERSION_FIELD_OFFSET);
+    }
+
+    setMessageType(value: number): void {
+        this.header.writeUInt16LE(value, BitsUtil.TYPE_FIELD_OFFSET);
+    }
+
+    setFlags(value: number): void {
+        this.header.writeUInt8(value, BitsUtil.FLAGS_FIELD_OFFSET);
+    }
+
+    setFrameLength(value: number): void {
+        this.header.writeInt32LE(value, BitsUtil.FRAME_LENGTH_FIELD_OFFSET);
+    }
+
+    setDataOffset(value: number): void {
+        this.header.writeInt16LE(value, BitsUtil.DATA_OFFSET_FIELD_OFFSET);
+    }
+
+    setRetryable(value: boolean): void {
+        this.isRetryable = value;
+    }
+
+    appendByte(value: number): void {
+        const buf = Buffer.allocUnsafe(BitsUtil.BYTE_SIZE_IN_BYTES);
+        buf.writeUInt8(value, 0);
+        this.payload.push(buf);
+    }
+
+    appendBoolean(value: boolean): void {
+        return this.appendByte(value ? 1 : 0);
+    }
+
+    appendInt32(value: number): void {
+        const buf = Buffer.allocUnsafe(BitsUtil.INT_SIZE_IN_BYTES);
+        buf.writeInt32LE(value, 0);
+        this.payload.push(buf);
+    }
+
+    appendUint8(value: number): void {
+        const buf = Buffer.allocUnsafe(BitsUtil.BYTE_SIZE_IN_BYTES);
+        buf.writeUInt8(value, 0);
+        this.payload.push(buf);
+    }
+
+    appendLong(value: any): void {
+        const buf = Buffer.allocUnsafe(BitsUtil.LONG_SIZE_IN_BYTES);
+        
+        if (!Long.isLong(value)) {
+            value = Long.fromValue(value);
+        }
+
+        buf.writeInt32LE(value.low, 0);
+        buf.writeInt32LE(value.high, 4);
+        this.payload.push(buf);
+    }
+
+    appendString(value: string): void {
+        const length = value.length;
+        const buf = Buffer.allocUnsafe(Buffer.byteLength(value, 'utf8') + 4);
+        buf.writeInt32LE(length, 0);
+        buf.write(value, 4);
+        this.payload.push(buf);
+    }
+
+    appendBuffer(buffer: Buffer): void {
+        this.appendInt32(buffer.length);
+        this.payload.push(buffer);
+    }
+
+    appendData(data: Data): void {
+        this.appendBuffer(data.toBuffer());
+    }
+
+    updateFrameLength(): void {
+        // TODO: no-op for now
+    }
+}

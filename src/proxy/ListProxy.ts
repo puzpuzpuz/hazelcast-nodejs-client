@@ -42,7 +42,7 @@ import {ListenerMessageCodec} from '../ListenerMessageCodec';
 import {Data} from '../serialization/Data';
 import {IList} from './IList';
 import {PartitionSpecificProxy} from './PartitionSpecificProxy';
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 
 export class ListProxy<E> extends PartitionSpecificProxy implements IList<E> {
 
@@ -129,7 +129,7 @@ export class ListProxy<E> extends PartitionSpecificProxy implements IList<E> {
     }
 
     addItemListener(listener: ItemListener<E>, includeValue: boolean): Promise<string> {
-        const listenerHandler = (message: ClientMessage) => {
+        const listenerHandler = (message: ClientInputMessage) => {
             ListAddListenerCodec.handle(message, (element: Data, uuid: string, eventType: number) => {
                 const responseObject = element ? this.toObject(element) : null;
 
@@ -160,13 +160,13 @@ export class ListProxy<E> extends PartitionSpecificProxy implements IList<E> {
 
     private createItemListener(name: string, includeValue: boolean): ListenerMessageCodec {
         return {
-            encodeAddRequest(localOnly: boolean): ClientMessage {
+            encodeAddRequest(localOnly: boolean): ClientOutputMessage {
                 return ListAddListenerCodec.encodeRequest(name, includeValue, localOnly);
             },
-            decodeAddResponse(msg: ClientMessage): string {
+            decodeAddResponse(msg: ClientInputMessage): string {
                 return ListAddListenerCodec.decodeResponse(msg).response;
             },
-            encodeRemoveRequest(listenerId: string): ClientMessage {
+            encodeRemoveRequest(listenerId: string): ClientOutputMessage {
                 return ListRemoveListenerCodec.encodeRequest(name, listenerId);
             },
         };

@@ -20,6 +20,7 @@ import {EventEmitter} from 'events';
 import HazelcastClient from '../HazelcastClient';
 import {ClientNotActiveError, HazelcastError, IllegalStateError} from '../HazelcastError';
 import {ClientConnection} from './ClientConnection';
+import {ClientOutputMessage} from '../ClientMessage';
 import {ConnectionAuthenticator} from './ConnectionAuthenticator';
 import * as net from 'net';
 import * as tls from 'tls';
@@ -216,8 +217,7 @@ export class ClientConnectionManager extends EventEmitter {
 
     private initiateCommunication(connection: ClientConnection): Promise<void> {
         // Send the protocol version
-        const buffer = Buffer.from('CB2');
-        return connection.write(buffer);
+        return connection.write(ClientOutputMessage.initialMessage());
     }
 
     private onConnectionClosed(connection: ClientConnection): void {

@@ -15,7 +15,7 @@
  */
 
 /* tslint:disable */
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 import {BitsUtil} from '../BitsUtil';
 import {Data} from '../serialization/Data';
 import {MapMessageType} from './MapMessageType';
@@ -40,7 +40,7 @@ export class MapUnlockCodec {
 
     static encodeRequest(name: string, key: Data, threadId: any, referenceId: any) {
 // Encode request into clientMessage
-        var clientMessage = ClientMessage.newClientMessage(this.calculateSize(name, key, threadId, referenceId));
+        var clientMessage = ClientOutputMessage.newClientMessage(this.calculateSize(name, key, threadId, referenceId));
         clientMessage.setMessageType(REQUEST_TYPE);
         clientMessage.setRetryable(RETRYABLE);
         clientMessage.appendString(name);

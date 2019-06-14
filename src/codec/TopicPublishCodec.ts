@@ -15,7 +15,7 @@
  */
 
 /* tslint:disable */
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 import {BitsUtil} from '../BitsUtil';
 import {Data} from '../serialization/Data';
 import {TopicMessageType} from './TopicMessageType';
@@ -38,7 +38,7 @@ export class TopicPublishCodec {
 
     static encodeRequest(name: string, message: Data) {
 // Encode request into clientMessage
-        var clientMessage = ClientMessage.newClientMessage(this.calculateSize(name, message));
+        var clientMessage = ClientOutputMessage.newClientMessage(this.calculateSize(name, message));
         clientMessage.setMessageType(REQUEST_TYPE);
         clientMessage.setRetryable(RETRYABLE);
         clientMessage.appendString(name);

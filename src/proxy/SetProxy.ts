@@ -33,7 +33,7 @@ import {ListenerMessageCodec} from '../ListenerMessageCodec';
 import {Data} from '../serialization/Data';
 import {ISet} from './ISet';
 import {PartitionSpecificProxy} from './PartitionSpecificProxy';
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 
 export class SetProxy<E> extends PartitionSpecificProxy implements ISet<E> {
 
@@ -86,7 +86,7 @@ export class SetProxy<E> extends PartitionSpecificProxy implements ISet<E> {
     }
 
     addItemListener(listener: ItemListener<E>, includeValue: boolean = true): Promise<string> {
-        const handler = (message: ClientMessage) => {
+        const handler = (message: ClientInputMessage) => {
             SetAddListenerCodec.handle(message, (item: Data, uuid: string, eventType: number) => {
                 const responseObject = this.toObject(item);
                 const member = this.client.getClusterService().getMember(uuid);
@@ -116,13 +116,13 @@ export class SetProxy<E> extends PartitionSpecificProxy implements ISet<E> {
 
     private createEntryListener(name: string, includeValue: boolean): ListenerMessageCodec {
         return {
-            encodeAddRequest(localOnly: boolean): ClientMessage {
+            encodeAddRequest(localOnly: boolean): ClientOutputMessage {
                 return SetAddListenerCodec.encodeRequest(name, includeValue, localOnly);
             },
-            decodeAddResponse(msg: ClientMessage): string {
+            decodeAddResponse(msg: ClientInputMessage): string {
                 return SetAddListenerCodec.decodeResponse(msg).response;
             },
-            encodeRemoveRequest(listenerId: string): ClientMessage {
+            encodeRemoveRequest(listenerId: string): ClientOutputMessage {
                 return SetRemoveListenerCodec.encodeRequest(name, listenerId);
             },
         };

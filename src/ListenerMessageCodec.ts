@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-import ClientMessage = require('./ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from './ClientMessage';
 
 export interface ListenerMessageCodec {
-    encodeAddRequest: (localOnly: boolean) => ClientMessage;
-    decodeAddResponse: (msg: ClientMessage) => string;
-    encodeRemoveRequest: (listenerId: string) => ClientMessage;
+    encodeAddRequest: (localOnly: boolean) => ClientOutputMessage;
+    decodeAddResponse: (msg: ClientInputMessage) => string;
+    encodeRemoveRequest: (listenerId: string) => ClientOutputMessage;
 }

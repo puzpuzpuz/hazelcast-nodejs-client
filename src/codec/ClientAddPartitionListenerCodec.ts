@@ -15,7 +15,7 @@
  */
 
 /* tslint:disable */
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 import Address = require('../Address');
 import {BitsUtil} from '../BitsUtil';
 import {AddressCodec} from './AddressCodec';
@@ -38,7 +38,7 @@ export class ClientAddPartitionListenerCodec {
 
     static encodeRequest() {
 // Encode request into clientMessage
-        var clientMessage = ClientMessage.newClientMessage(this.calculateSize());
+        var clientMessage = ClientOutputMessage.newClientMessage(this.calculateSize());
         clientMessage.setMessageType(REQUEST_TYPE);
         clientMessage.setRetryable(RETRYABLE);
         clientMessage.updateFrameLength();
@@ -47,7 +47,7 @@ export class ClientAddPartitionListenerCodec {
 
 // Empty decodeResponse(ClientMessage), this message has no parameters to decode
 
-    static handle(clientMessage: ClientMessage, handleEventPartitions: any, toObjectFunction: (data: Data) => any = null) {
+    static handle(clientMessage: ClientInputMessage, handleEventPartitions: any, toObjectFunction: (data: Data) => any = null) {
 
         var messageType = clientMessage.getMessageType();
         if (messageType === BitsUtil.EVENT_PARTITIONS && handleEventPartitions !== null) {

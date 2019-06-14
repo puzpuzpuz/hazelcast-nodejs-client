@@ -15,7 +15,7 @@
  */
 
 /* tslint:disable */
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 import {BitsUtil} from '../BitsUtil';
 import {SemaphoreMessageType} from './SemaphoreMessageType';
 
@@ -37,7 +37,7 @@ export class SemaphoreAcquireCodec {
 
     static encodeRequest(name: string, permits: number) {
 // Encode request into clientMessage
-        var clientMessage = ClientMessage.newClientMessage(this.calculateSize(name, permits));
+        var clientMessage = ClientOutputMessage.newClientMessage(this.calculateSize(name, permits));
         clientMessage.setMessageType(REQUEST_TYPE);
         clientMessage.setRetryable(RETRYABLE);
         clientMessage.appendString(name);

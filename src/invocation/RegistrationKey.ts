@@ -14,27 +14,27 @@
  * limitations under the License.
  */
 
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 import {ListenerMessageCodec} from '../ListenerMessageCodec';
 
 export class RegistrationKey {
     private readonly userRegistrationId: string;
     private registerHandlerFunc: Function;
-    private registerRequest: ClientMessage;
+    private registerRequest: ClientOutputMessage;
     private codec: ListenerMessageCodec;
 
-    constructor(regId: string, codec: ListenerMessageCodec, registerRequest?: ClientMessage, registerHandlerFunc?: Function) {
+    constructor(regId: string, codec: ListenerMessageCodec, registerRequest?: ClientOutputMessage, registerHandlerFunc?: Function) {
         this.userRegistrationId = regId;
         this.registerHandlerFunc = registerHandlerFunc;
         this.registerRequest = registerRequest;
         this.codec = codec;
     }
 
-    getRegisterRequest(): ClientMessage {
+    getRegisterRequest(): ClientOutputMessage {
         return this.registerRequest;
     }
 
-    setRegisterRequest(registerRequest: ClientMessage): void {
+    setRegisterRequest(registerRequest: ClientOutputMessage): void {
         this.registerRequest = registerRequest;
     }
 

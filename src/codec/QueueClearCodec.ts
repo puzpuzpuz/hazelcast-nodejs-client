@@ -15,7 +15,7 @@
  */
 
 /* tslint:disable */
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 import {BitsUtil} from '../BitsUtil';
 import {QueueMessageType} from './QueueMessageType';
 
@@ -36,7 +36,7 @@ export class QueueClearCodec {
 
     static encodeRequest(name: string) {
 // Encode request into clientMessage
-        var clientMessage = ClientMessage.newClientMessage(this.calculateSize(name));
+        var clientMessage = ClientOutputMessage.newClientMessage(this.calculateSize(name));
         clientMessage.setMessageType(REQUEST_TYPE);
         clientMessage.setRetryable(RETRYABLE);
         clientMessage.appendString(name);

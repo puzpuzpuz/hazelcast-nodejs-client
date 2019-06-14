@@ -41,7 +41,7 @@ import {ListenerMessageCodec} from '../ListenerMessageCodec';
 import {Data} from '../serialization/Data';
 import {IQueue} from './IQueue';
 import {PartitionSpecificProxy} from './PartitionSpecificProxy';
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 
 export class QueueProxy<E> extends PartitionSpecificProxy implements IQueue<E> {
 
@@ -65,7 +65,7 @@ export class QueueProxy<E> extends PartitionSpecificProxy implements IQueue<E> {
     }
 
     addItemListener(listener: ItemListener<E>, includeValue: boolean): Promise<string> {
-        const handler = (message: ClientMessage) => {
+        const handler = (message: ClientInputMessage) => {
             QueueAddListenerCodec.handle(message, (item: Data, uuid: string, eventType: number) => {
                 let responseObject: E;
                 if (item == null) {
@@ -188,13 +188,13 @@ export class QueueProxy<E> extends PartitionSpecificProxy implements IQueue<E> {
 
     private createEntryListener(name: string, includeValue: boolean): ListenerMessageCodec {
         return {
-            encodeAddRequest(localOnly: boolean): ClientMessage {
+            encodeAddRequest(localOnly: boolean): ClientOutputMessage {
                 return QueueAddListenerCodec.encodeRequest(name, includeValue, localOnly);
             },
-            decodeAddResponse(msg: ClientMessage): string {
+            decodeAddResponse(msg: ClientInputMessage): string {
                 return QueueAddListenerCodec.decodeResponse(msg).response;
             },
-            encodeRemoveRequest(listenerId: string): ClientMessage {
+            encodeRemoveRequest(listenerId: string): ClientOutputMessage {
                 return QueueRemoveListenerCodec.encodeRequest(name, listenerId);
             },
         };

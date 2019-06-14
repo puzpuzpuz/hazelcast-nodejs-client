@@ -15,14 +15,14 @@
  */
 
 /* tslint:disable */
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 import Address = require('../Address');
 import {Member} from '../core/Member';
 import {AddressCodec} from './AddressCodec';
 
 export class MemberCodec {
 
-    static encode(clientMessage: ClientMessage, member: Member): void {
+    static encode(clientMessage: ClientOutputMessage, member: Member): void {
         AddressCodec.encode(clientMessage, member.address);
         clientMessage.appendString(member.uuid);
         clientMessage.appendBoolean(member.isLiteMember);
@@ -34,7 +34,7 @@ export class MemberCodec {
         }
     }
 
-    static decode(clientMessage: ClientMessage, toObject: Function) {
+    static decode(clientMessage: ClientInputMessage, toObject: Function) {
         var address: Address = AddressCodec.decode(clientMessage, toObject);
         var uuid = clientMessage.readString();
         var liteMember = clientMessage.readBoolean();

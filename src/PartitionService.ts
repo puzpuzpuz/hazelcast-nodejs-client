@@ -18,7 +18,7 @@ import * as Promise from 'bluebird';
 import HazelcastClient from './HazelcastClient';
 import {ILogger} from './logging/ILogger';
 import Address = require('./Address');
-import ClientMessage = require('./ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from './ClientMessage';
 import GetPartitionsCodec = require('./codec/GetPartitionsCodec');
 
 const PARTITION_REFRESH_INTERVAL = 10000;
@@ -59,11 +59,11 @@ export class PartitionService {
         if (ownerConnection == null) {
             return Promise.resolve();
         }
-        const clientMessage: ClientMessage = GetPartitionsCodec.encodeRequest();
+        const clientMessage: ClientOutputMessage = GetPartitionsCodec.encodeRequest();
 
         return this.client.getInvocationService()
             .invokeOnConnection(ownerConnection, clientMessage)
-            .then((response: ClientMessage) => {
+            .then((response: ClientInputMessage) => {
                 const receivedPartitionMap = GetPartitionsCodec.decodeResponse(response);
                 for (const partitionId in receivedPartitionMap) {
                     this.partitionMap[partitionId] = receivedPartitionMap[partitionId];

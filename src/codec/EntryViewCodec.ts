@@ -15,12 +15,12 @@
  */
 
 /* tslint:disable */
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 import {Data} from '../serialization/Data';
 import {EntryView} from '../core/EntryView';
 
 export class EntryViewCodec {
-    static encode(clientMessage: ClientMessage, entryView: EntryView<any, any>, toData: (object: any) => Data = null) {
+    static encode(clientMessage: ClientInputMessage, entryView: EntryView<any, any>, toData: (object: any) => Data = null) {
         clientMessage.appendData(toData(entryView.key));
         clientMessage.appendData(toData(entryView.value));
         clientMessage.appendLong(entryView.cost);
@@ -35,7 +35,7 @@ export class EntryViewCodec {
         clientMessage.appendLong(entryView.ttl);
     }
 
-    static decode(clientMessage: ClientMessage, toObject: (data: Data) => any = null) {
+    static decode(clientMessage: ClientInputMessage, toObject: (data: Data) => any = null) {
         var entry = new EntryView<any, any>();
         entry.key = toObject(clientMessage.readData());
         entry.value = toObject(clientMessage.readData());

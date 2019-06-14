@@ -15,10 +15,10 @@
  */
 
 /* tslint:disable */
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 
 class DistributedObjectInfoCodec {
-    static decode(clientMessage: ClientMessage, toObjectFunction: Function): any {
+    static decode(clientMessage: ClientInputMessage, toObjectFunction: Function): any {
         var serviceName = clientMessage.readString();
         var name = clientMessage.readString();
         return {key: serviceName, value: name};

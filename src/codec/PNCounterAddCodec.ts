@@ -15,7 +15,7 @@
  */
 
 /* tslint:disable */
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 import Address = require('../Address');
 import {BitsUtil} from '../BitsUtil';
 import {AddressCodec} from './AddressCodec';
@@ -46,7 +46,7 @@ export class PNCounterAddCodec {
     }
 
     static encodeRequest(name: string, delta: any, getBeforeUpdate: boolean, replicaTimestamps: Array<[string, any]>, targetReplica: Address) {
-        var clientMessage = ClientMessage.newClientMessage(this.calculateSize(name, delta, getBeforeUpdate, replicaTimestamps, targetReplica));
+        var clientMessage = ClientOutputMessage.newClientMessage(this.calculateSize(name, delta, getBeforeUpdate, replicaTimestamps, targetReplica));
         clientMessage.setMessageType(REQUEST_TYPE);
         clientMessage.setRetryable(RETRYABLE);
         clientMessage.appendString(name);
@@ -66,7 +66,7 @@ export class PNCounterAddCodec {
         return clientMessage;
     }
 
-    static decodeResponse(clientMessage: ClientMessage, toObjectFunction: (data: Data) => any = null) {
+    static decodeResponse(clientMessage: ClientInputMessage, toObjectFunction: (data: Data) => any = null) {
         var parameters: any = {
             'value': null,
             'replicaTimestamps': null,

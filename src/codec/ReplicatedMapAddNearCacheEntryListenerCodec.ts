@@ -15,7 +15,7 @@
  */
 
 /* tslint:disable */
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 import {BitsUtil} from '../BitsUtil';
 import {Data} from '../serialization/Data';
 import {ReplicatedMapMessageType} from './ReplicatedMapMessageType';
@@ -39,7 +39,7 @@ export class ReplicatedMapAddNearCacheEntryListenerCodec {
 
     static encodeRequest(name: string, includeValue: boolean, localOnly: boolean) {
 // Encode request into clientMessage
-        var clientMessage = ClientMessage.newClientMessage(this.calculateSize(name, includeValue, localOnly));
+        var clientMessage = ClientOutputMessage.newClientMessage(this.calculateSize(name, includeValue, localOnly));
         clientMessage.setMessageType(REQUEST_TYPE);
         clientMessage.setRetryable(RETRYABLE);
         clientMessage.appendString(name);
@@ -49,7 +49,7 @@ export class ReplicatedMapAddNearCacheEntryListenerCodec {
         return clientMessage;
     }
 
-    static decodeResponse(clientMessage: ClientMessage, toObjectFunction: (data: Data) => any = null) {
+    static decodeResponse(clientMessage: ClientInputMessage, toObjectFunction: (data: Data) => any = null) {
         // Decode response from client message
         var parameters: any = {
             'response': null
@@ -60,7 +60,7 @@ export class ReplicatedMapAddNearCacheEntryListenerCodec {
         return parameters;
     }
 
-    static handle(clientMessage: ClientMessage, handleEventEntry: any, toObjectFunction: (data: Data) => any = null) {
+    static handle(clientMessage: ClientInputMessage, handleEventEntry: any, toObjectFunction: (data: Data) => any = null) {
 
         var messageType = clientMessage.getMessageType();
         if (messageType === BitsUtil.EVENT_ENTRY && handleEventEntry !== null) {

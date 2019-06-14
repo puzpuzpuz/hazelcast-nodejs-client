@@ -23,7 +23,7 @@ import {Invocation} from '../invocation/InvocationService';
 import {PartitionService} from '../PartitionService';
 import {RepairingHandler} from './RepairingHandler';
 import {ILogger} from '../logging/ILogger';
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 
 export class MetadataFetcher {
 
@@ -39,7 +39,7 @@ export class MetadataFetcher {
 
     initHandler(handler: RepairingHandler): Promise<void> {
         const scanPromises = this.scanMembers([handler.getName()]);
-        return Promise.all(scanPromises).then((responses: ClientMessage[]) => {
+        return Promise.all(scanPromises).then((responses: ClientInputMessage[]) => {
             responses.forEach((response) => {
                 const metadata = MapFetchNearCacheInvalidationMetadataCodec.decodeResponse(response);
                 handler.initUuid(metadata.partitionUuidList);
@@ -51,12 +51,12 @@ export class MetadataFetcher {
     fetchMetadata(handlers: Map<string, RepairingHandler>): Promise<void> {
         const objectNames = this.getObjectNames(handlers);
         const promises = this.scanMembers(objectNames);
-        return Promise.each(promises, (clientMessage: ClientMessage) => {
+        return Promise.each(promises, (clientMessage: ClientInputMessage) => {
             this.processResponse(clientMessage, handlers);
         }).return();
     }
 
-    protected processResponse(responseMessage: ClientMessage, handlers: Map<string, RepairingHandler>): void {
+    protected processResponse(responseMessage: ClientInputMessage, handlers: Map<string, RepairingHandler>): void {
         const metadata = MapFetchNearCacheInvalidationMetadataCodec.decodeResponse(responseMessage);
         handlers.forEach((handler: RepairingHandler) => {
             try {
@@ -83,7 +83,7 @@ export class MetadataFetcher {
         });
     }
 
-    protected scanMembers(objectNames: string[]): Array<Promise<ClientMessage>> {
+    protected scanMembers(objectNames: string[]): Array<Promise<ClientInputMessage>> {
         const members = this.client.getClusterService().getMembers(MemberSelectors.DATA_MEMBER_SELECTOR);
         const promises: Array<Promise<any>> = [];
         members.forEach((member) => {

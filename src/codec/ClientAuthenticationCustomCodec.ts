@@ -15,7 +15,7 @@
  */
 
 /* tslint:disable */
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 import {BitsUtil} from '../BitsUtil';
 import {AddressCodec} from './AddressCodec';
 import {MemberCodec} from './MemberCodec';
@@ -51,7 +51,7 @@ export class ClientAuthenticationCustomCodec {
 
     static encodeRequest(credentials: Data, uuid: string, ownerUuid: string, isOwnerConnection: boolean, clientType: string, serializationVersion: any, clientHazelcastVersion: string) {
 // Encode request into clientMessage
-        var clientMessage = ClientMessage.newClientMessage(this.calculateSize(credentials, uuid, ownerUuid, isOwnerConnection, clientType, serializationVersion, clientHazelcastVersion));
+        var clientMessage = ClientOutputMessage.newClientMessage(this.calculateSize(credentials, uuid, ownerUuid, isOwnerConnection, clientType, serializationVersion, clientHazelcastVersion));
         clientMessage.setMessageType(REQUEST_TYPE);
         clientMessage.setRetryable(RETRYABLE);
         clientMessage.appendData(credentials);
@@ -71,7 +71,7 @@ export class ClientAuthenticationCustomCodec {
         return clientMessage;
     }
 
-    static decodeResponse(clientMessage: ClientMessage, toObjectFunction: (data: Data) => any = null) {
+    static decodeResponse(clientMessage: ClientInputMessage, toObjectFunction: (data: Data) => any = null) {
         // Decode response from client message
         var parameters: any = {
             'status': null,

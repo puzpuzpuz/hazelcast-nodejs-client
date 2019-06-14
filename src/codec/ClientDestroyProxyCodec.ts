@@ -15,7 +15,7 @@
  */
 
 /* tslint:disable */
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 import {BitsUtil} from '../BitsUtil';
 import {ClientMessageType} from './ClientMessageType';
 
@@ -37,7 +37,7 @@ export class ClientDestroyProxyCodec {
 
     static encodeRequest(name: string, serviceName: string) {
 // Encode request into clientMessage
-        var clientMessage = ClientMessage.newClientMessage(this.calculateSize(name, serviceName));
+        var clientMessage = ClientOutputMessage.newClientMessage(this.calculateSize(name, serviceName));
         clientMessage.setMessageType(REQUEST_TYPE);
         clientMessage.setRetryable(RETRYABLE);
         clientMessage.appendString(name);

@@ -46,7 +46,7 @@ import {PartitionSpecificProxy} from './PartitionSpecificProxy';
 import {MapEvent} from '../core/MapListener';
 /* tslint:enable:max-line-length */
 import Long = require('long');
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 
 export class ReplicatedMapProxy<K, V> extends PartitionSpecificProxy implements ReplicatedMap<K, V> {
 
@@ -216,20 +216,20 @@ export class ReplicatedMapProxy<K, V> extends PartitionSpecificProxy implements 
             listenerHandler = ReplicatedMapAddEntryListenerCodec.handle;
         }
         return this.client.getListenerService().registerListener(codec,
-            (m: ClientMessage) => {
+            (m: ClientInputMessage) => {
                 listenerHandler(m, entryEventHandler, toObject);
             });
     }
 
     private createEntryListener(name: string): ListenerMessageCodec {
         return {
-            encodeAddRequest(localOnly: boolean): ClientMessage {
+            encodeAddRequest(localOnly: boolean): ClientOutputMessage {
                 return ReplicatedMapAddEntryListenerCodec.encodeRequest(name, localOnly);
             },
-            decodeAddResponse(msg: ClientMessage): string {
+            decodeAddResponse(msg: ClientInputMessage): string {
                 return ReplicatedMapAddEntryListenerCodec.decodeResponse(msg).response;
             },
-            encodeRemoveRequest(listenerId: string): ClientMessage {
+            encodeRemoveRequest(listenerId: string): ClientOutputMessage {
                 return ReplicatedMapRemoveEntryListenerCodec.encodeRequest(name, listenerId);
             },
         };
@@ -237,13 +237,13 @@ export class ReplicatedMapProxy<K, V> extends PartitionSpecificProxy implements 
 
     private createEntryListenerToKey(name: string, keyData: Data): ListenerMessageCodec {
         return {
-            encodeAddRequest(localOnly: boolean): ClientMessage {
+            encodeAddRequest(localOnly: boolean): ClientOutputMessage {
                 return ReplicatedMapAddEntryListenerToKeyCodec.encodeRequest(name, keyData, localOnly);
             },
-            decodeAddResponse(msg: ClientMessage): string {
+            decodeAddResponse(msg: ClientInputMessage): string {
                 return ReplicatedMapAddEntryListenerToKeyCodec.decodeResponse(msg).response;
             },
-            encodeRemoveRequest(listenerId: string): ClientMessage {
+            encodeRemoveRequest(listenerId: string): ClientOutputMessage {
                 return ReplicatedMapRemoveEntryListenerCodec.encodeRequest(name, listenerId);
             },
         };
@@ -251,13 +251,13 @@ export class ReplicatedMapProxy<K, V> extends PartitionSpecificProxy implements 
 
     private createEntryListenerWithPredicate(name: string, predicateData: Data): ListenerMessageCodec {
         return {
-            encodeAddRequest(localOnly: boolean): ClientMessage {
+            encodeAddRequest(localOnly: boolean): ClientOutputMessage {
                 return ReplicatedMapAddEntryListenerWithPredicateCodec.encodeRequest(name, predicateData, localOnly);
             },
-            decodeAddResponse(msg: ClientMessage): string {
+            decodeAddResponse(msg: ClientInputMessage): string {
                 return ReplicatedMapAddEntryListenerWithPredicateCodec.decodeResponse(msg).response;
             },
-            encodeRemoveRequest(listenerId: string): ClientMessage {
+            encodeRemoveRequest(listenerId: string): ClientOutputMessage {
                 return ReplicatedMapRemoveEntryListenerCodec.encodeRequest(name, listenerId);
             },
         };
@@ -265,14 +265,14 @@ export class ReplicatedMapProxy<K, V> extends PartitionSpecificProxy implements 
 
     private createEntryListenerToKeyWithPredicate(name: string, keyData: Data, predicateData: Data): ListenerMessageCodec {
         return {
-            encodeAddRequest(localOnly: boolean): ClientMessage {
+            encodeAddRequest(localOnly: boolean): ClientOutputMessage {
                 return ReplicatedMapAddEntryListenerToKeyWithPredicateCodec.encodeRequest(name, keyData, predicateData,
                     localOnly);
             },
-            decodeAddResponse(msg: ClientMessage): string {
+            decodeAddResponse(msg: ClientInputMessage): string {
                 return ReplicatedMapAddEntryListenerToKeyWithPredicateCodec.decodeResponse(msg).response;
             },
-            encodeRemoveRequest(listenerId: string): ClientMessage {
+            encodeRemoveRequest(listenerId: string): ClientOutputMessage {
                 return ReplicatedMapRemoveEntryListenerCodec.encodeRequest(name, listenerId);
             },
         };

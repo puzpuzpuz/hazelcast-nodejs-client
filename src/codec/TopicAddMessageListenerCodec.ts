@@ -15,7 +15,7 @@
  */
 
 /* tslint:disable */
-import ClientMessage = require('../ClientMessage');
+import {ClientInputMessage, ClientOutputMessage} from '../ClientMessage';
 import {BitsUtil} from '../BitsUtil';
 import {Data} from '../serialization/Data';
 import {TopicMessageType} from './TopicMessageType';
@@ -38,7 +38,7 @@ export class TopicAddMessageListenerCodec {
 
     static encodeRequest(name: string, localOnly: boolean) {
 // Encode request into clientMessage
-        var clientMessage = ClientMessage.newClientMessage(this.calculateSize(name, localOnly));
+        var clientMessage = ClientOutputMessage.newClientMessage(this.calculateSize(name, localOnly));
         clientMessage.setMessageType(REQUEST_TYPE);
         clientMessage.setRetryable(RETRYABLE);
         clientMessage.appendString(name);
@@ -47,7 +47,7 @@ export class TopicAddMessageListenerCodec {
         return clientMessage;
     }
 
-    static decodeResponse(clientMessage: ClientMessage, toObjectFunction: (data: Data) => any = null) {
+    static decodeResponse(clientMessage: ClientInputMessage, toObjectFunction: (data: Data) => any = null) {
         // Decode response from client message
         var parameters: any = {
             'response': null
@@ -58,7 +58,7 @@ export class TopicAddMessageListenerCodec {
         return parameters;
     }
 
-    static handle(clientMessage: ClientMessage, handleEventTopic: any, toObjectFunction: (data: Data) => any = null) {
+    static handle(clientMessage: ClientInputMessage, handleEventTopic: any, toObjectFunction: (data: Data) => any = null) {
 
         var messageType = clientMessage.getMessageType();
         if (messageType === BitsUtil.EVENT_TOPIC && handleEventTopic !== null) {
