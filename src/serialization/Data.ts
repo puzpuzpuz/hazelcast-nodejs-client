@@ -23,6 +23,10 @@ export interface Data {
      */
     toBuffer(): Buffer;
 
+    writeToBuffer(buffer: Buffer, offset: number): void;
+
+    isLazy(): boolean;
+
     /**
      * Returns serialization type
      */

@@ -73,6 +73,7 @@ import {IterationType, Predicate} from '../core/Predicate';
 import {ReadOnlyLazyList} from '../core/ReadOnlyLazyList';
 import {ListenerMessageCodec} from '../ListenerMessageCodec';
 import {Data} from '../serialization/Data';
+import {LazyStringHeapData} from '../serialization/HeapData';
 import {PagingPredicate} from '../serialization/DefaultPredicates';
 import {IdentifiedDataSerializable, Portable} from '../serialization/Serializable';
 import * as SerializationUtil from '../serialization/SerializationUtil';
@@ -252,7 +253,9 @@ export class MapProxy<K, V> extends BaseProxy implements IMap<K, V> {
 
     get(key: K): Promise<V> {
         assertNotNull(key);
-        const keyData = this.toData(key);
+        const service = this.client.getSerializationService();
+        const keyData: Data = this.toData(new LazyStringHeapData(key, service.partitionHash(key)));
+        // const keyData = this.toData(key);
         return this.getInternal(keyData);
     }
 
@@ -405,8 +408,11 @@ export class MapProxy<K, V> extends BaseProxy implements IMap<K, V> {
     set(key: K, value: V, ttl: number = -1): Promise<void> {
         assertNotNull(key);
         assertNotNull(value);
-        const keyData = this.toData(key);
-        const valueData = this.toData(value);
+        const service = this.client.getSerializationService();
+        const keyData: Data = this.toData(new LazyStringHeapData(key, service.partitionHash(key)));
+        const valueData: Data = this.toData(new LazyStringHeapData(value, service.partitionHash(value)));
+        // const keyData: Data = this.toData(key);
+        // const valueData: Data = this.toData(value);
         return this.setInternal(keyData, valueData, ttl);
     }
 

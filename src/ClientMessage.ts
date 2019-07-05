@@ -174,8 +174,19 @@ class ClientMessage {
         this.cursor += length;
     }
 
+    writeBuffer(data: Data): void {
+        const length = data.totalSize();
+        this.appendInt32(length);
+        data.writeToBuffer(this.buffer, this.cursor);
+        this.cursor += length;
+    }
+
     appendData(data: Data): void {
-        this.appendBuffer(data.toBuffer());
+        if (!data.isLazy()) {
+            this.appendBuffer(data.toBuffer());
+        } else {
+            this.writeBuffer(data);
+        }
     }
 
     addFlag(value: number): void {

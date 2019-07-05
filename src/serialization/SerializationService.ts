@@ -49,7 +49,7 @@ import {
     StringArraySerializer,
     StringSerializer,
 } from './DefaultSerializer';
-import {DATA_OFFSET, HeapData} from './HeapData';
+import {DATA_OFFSET, HeapData, LazyStringHeapData} from './HeapData';
 import {ObjectDataInput, PositionalObjectDataOutput} from './ObjectData';
 import {PortableSerializer} from './portable/PortableSerializer';
 import {PREDICATE_FACTORY_ID, PredicateFactory} from './PredicateFactory';
@@ -66,6 +66,8 @@ export interface SerializationService {
     writeObject(out: DataOutput, object: any): void;
 
     readObject(inp: DataInput): any;
+
+    partitionHash(object: any): number;
 }
 
 export interface Serializer {
@@ -97,7 +99,7 @@ export class SerializationServiceV1 implements SerializationService {
     }
 
     public isData(object: any): boolean {
-        if (object instanceof HeapData) {
+        if (object instanceof HeapData || object instanceof LazyStringHeapData) {
             return true;
         } else {
             return false;
@@ -122,6 +124,10 @@ export class SerializationServiceV1 implements SerializationService {
         dataOutput.writeIntBE(serializer.getId());
         serializer.write(dataOutput, object);
         return new HeapData(dataOutput.toBuffer());
+    }
+
+    partitionHash(object: any): number {
+        return this.calculatePartitionHash(object, this.defaultPartitionStrategy);
     }
 
     toObject(data: Data): any {
