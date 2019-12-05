@@ -36,11 +36,11 @@
  |                                                              ...
  */
 
-import {Buffer} from 'safe-buffer';
 import * as Long from 'long';
 import {BitsUtil} from './BitsUtil';
 import {Data} from './serialization/Data';
 import {HeapData} from './serialization/HeapData';
+import {pool} from './util/BufferPool';
 
 class ClientMessage {
 
@@ -54,7 +54,7 @@ class ClientMessage {
 
     public static newClientMessage(payloadSize: number): ClientMessage {
         const totalSize = BitsUtil.HEADER_SIZE + payloadSize;
-        const buffer = Buffer.allocUnsafe(totalSize);
+        const buffer = pool.allocUnsafe(totalSize);
         const message = new ClientMessage(buffer);
         message.setDataOffset(BitsUtil.HEADER_SIZE);
         message.setVersion(BitsUtil.VERSION);

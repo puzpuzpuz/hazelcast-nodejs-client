@@ -15,13 +15,13 @@
  */
 
 /* tslint:disable:no-bitwise */
-import {Buffer} from 'safe-buffer';
 import * as assert from 'assert';
 import * as Long from 'long';
 import {BitsUtil} from '../BitsUtil';
 import {Data, DataInput, DataOutput, PositionalDataOutput} from './Data';
 import {HeapData, HEAP_DATA_OVERHEAD} from './HeapData';
 import {SerializationService} from './SerializationService';
+import {pool} from '../util/BufferPool';
 
 const OUTPUT_BUFFER_INITIAL_SIZE = HEAP_DATA_OVERHEAD + BitsUtil.LONG_SIZE_IN_BYTES;
 const MASK_1BYTE = (1 << 8) - 1;
@@ -36,7 +36,7 @@ export class ObjectDataOutput implements DataOutput {
     private pos: number;
 
     constructor(service: SerializationService, isBigEndian: boolean, isStandardUTF: boolean) {
-        this.buffer = Buffer.allocUnsafe(OUTPUT_BUFFER_INITIAL_SIZE);
+        this.buffer = pool.allocUnsafe(OUTPUT_BUFFER_INITIAL_SIZE);
         this.service = service;
         this.bigEndian = isBigEndian;
         this.standardUTF = isStandardUTF;
@@ -44,7 +44,7 @@ export class ObjectDataOutput implements DataOutput {
     }
 
     clear(): void {
-        this.buffer = Buffer.allocUnsafe(this.buffer.length);
+        this.buffer = pool.allocUnsafe(this.buffer.length);
         this.pos = 0;
     }
 
@@ -219,7 +219,7 @@ export class ObjectDataOutput implements DataOutput {
 
     private ensureAvailable(size: number): void {
         if (this.available() < size) {
-            const newBuffer = Buffer.allocUnsafe(this.pos + size);
+            const newBuffer = pool.allocUnsafe(this.pos + size);
             this.buffer.copy(newBuffer, 0, 0, this.pos);
             this.buffer = newBuffer;
         }
