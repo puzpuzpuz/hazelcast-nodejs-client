@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import {Buffer} from 'safe-buffer';
 import {AggregatorFactory} from '../aggregation/AggregatorFactory';
 import {ClusterDataFactory} from '../ClusterDataFactory';
 import {ClusterDataFactoryHelper} from '../ClusterDataFactoryHelper';
@@ -49,7 +48,7 @@ import {
     StringArraySerializer,
     StringSerializer,
 } from './DefaultSerializer';
-import {DATA_OFFSET, HeapData} from './HeapData';
+import {DATA_OFFSET, HeapData, LazyHeapData} from './HeapData';
 import {ObjectDataInput, PositionalObjectDataOutput} from './ObjectData';
 import {PortableSerializer} from './portable/PortableSerializer';
 import {PREDICATE_FACTORY_ID, PredicateFactory} from './PredicateFactory';
@@ -121,7 +120,7 @@ export class SerializationServiceV1 implements SerializationService {
         }
         dataOutput.writeIntBE(serializer.getId());
         serializer.write(dataOutput, object);
-        return new HeapData(dataOutput.toBuffer());
+        return new LazyHeapData(dataOutput);
     }
 
     toObject(data: Data): any {

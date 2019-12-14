@@ -19,9 +19,16 @@ import * as Long from 'long';
 
 export interface Data {
     /**
+     * TODO: can we get rid of it???
      * Returns serialized representation in a buffer
      */
     toBuffer(): Buffer;
+
+    /**
+     * Writes data into the given buffer.
+     * Returns size of written data in bytes.
+     */
+    writeTo(buffer: Buffer): number;
 
     /**
      * Returns serialization type
@@ -39,6 +46,7 @@ export interface Data {
     dataSize(): number;
 
     /**
+     * TODO: can we get rid of it???
      * Returns approximate heap cost of this Data object in bytes
      */
     getHeapCost(): number;
@@ -58,6 +66,9 @@ export interface Data {
      */
     hashCode(): number;
 
+    /**
+     * TODO: can we get rid of it???
+     */
     equals(other: Data): boolean;
 
     /**
@@ -68,13 +79,13 @@ export interface Data {
 }
 
 export interface DataOutput {
-    clear(): void;
-
     isBigEndian(): boolean;
 
-    position(newPosition?: number): number;
-
     toBuffer(): Buffer;
+
+    writeTo(buffer: Buffer): number;
+
+    size(): number;
 
     write(byte: number | Buffer): void;
 
@@ -128,6 +139,8 @@ export interface DataOutput {
 }
 
 export interface PositionalDataOutput extends DataOutput {
+    position(): number;
+
     pwrite(position: number, byte: number | Buffer): void;
 
     pwriteBoolean(position: number, val: boolean): void;

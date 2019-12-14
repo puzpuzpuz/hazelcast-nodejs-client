@@ -16,7 +16,7 @@
 
 import {Buffer} from 'safe-buffer';
 import murmur = require('../invocation/Murmur');
-import {Data} from './Data';
+import {Data, DataOutput} from './Data';
 
 export const PARTITION_HASH_OFFSET: number = 0;
 export const TYPE_OFFSET: number = 4;
@@ -29,24 +29,22 @@ export class HeapData implements Data {
 
     constructor(buffer: Buffer) {
         if (buffer != null && buffer.length > 0 && buffer.length < HEAP_DATA_OVERHEAD) {
-            throw new RangeError('Data should be either empty or should contain more than ' + HEAP_DATA_OVERHEAD
-                + ' bytes! -> '
-                + buffer);
+            throw new RangeError('Data should be either empty or should contain more than '
+                + HEAP_DATA_OVERHEAD + ' bytes! -> ' + buffer.length);
         }
         this.payload = buffer;
     }
 
-    /**
-     * Returns serialized representation in a buffer
-     */
-    public toBuffer(): Buffer {
+    toBuffer(): Buffer {
         return this.payload;
     }
 
-    /**
-     * Returns serialization type
-     */
-    public getType(): number {
+    writeTo(buffer: Buffer): number {
+        // TODO assert wrote all bytes
+        return this.payload.copy(buffer);
+    }
+
+    getType(): number {
         if (this.totalSize() === 0) {
             // TODO serialization null type
             return 0;
@@ -54,10 +52,7 @@ export class HeapData implements Data {
         return this.payload.readIntBE(TYPE_OFFSET, 4);
     }
 
-    /**
-     * Returns the total size of data in bytes
-     */
-    public totalSize(): number {
+    totalSize(): number {
         if (this.payload === null) {
             return 0;
         } else {
@@ -65,23 +60,14 @@ export class HeapData implements Data {
         }
     }
 
-    /**
-     * Returns size of internal binary data in bytes
-     */
-    public dataSize(): number {
+    dataSize(): number {
         return Math.max(this.totalSize() - HEAP_DATA_OVERHEAD, 0);
     }
 
-    /**
-     * Returns approximate heap cost of this Data object in bytes
-     */
     getHeapCost(): number {
         return 0;
     }
 
-    /**
-     * Returns partition hash of serialized object
-     */
     getPartitionHash(): number {
         if (this.hasPartitionHash()) {
             return this.payload.readIntBE(PARTITION_HASH_OFFSET, 4);
@@ -98,20 +84,100 @@ export class HeapData implements Data {
         return this.payload.compare(other.toBuffer(), DATA_OFFSET, other.toBuffer().length, DATA_OFFSET) === 0;
     }
 
-    /**
-     * Returns true if data has partition hash
-     */
     hasPartitionHash(): boolean {
         return this.payload !== null
             && this.payload.length >= HEAP_DATA_OVERHEAD
             && this.payload.readIntBE(PARTITION_HASH_OFFSET, 4) !== 0;
     }
 
-    /**
-     * Returns true if the object is a portable object
-     */
     isPortable(): boolean {
         return false;
+    }
+
+}
+
+export class LazyHeapData implements Data {
+
+    private chunkedPayload: DataOutput;
+    private payload: Buffer; // lazily calculated if dataOutput is set
+
+    constructor(dataOutput: DataOutput) {
+        if (dataOutput.size() < HEAP_DATA_OVERHEAD) {
+            throw new RangeError('Data should be either empty or should contain more than '
+                + HEAP_DATA_OVERHEAD + ' bytes! -> ' + dataOutput.size());
+        }
+        this.chunkedPayload = dataOutput;
+        this.payload = null;
+    }
+
+    toBuffer(): Buffer {
+        this.calculatePayload();
+        return this.payload;
+    }
+
+    public writeTo(buffer: Buffer): number {
+        if (this.payload !== null) {
+            return this.payload.copy(buffer);
+        }
+        return this.chunkedPayload.writeTo(buffer);
+    }
+
+    getType(): number {
+        if (this.totalSize() === 0) {
+            // TODO serialization null type
+            return 0;
+        }
+        this.calculatePayload();
+        return this.payload.readIntBE(TYPE_OFFSET, 4);
+    }
+
+    totalSize(): number {
+        return this.payload !== null ? this.payload.length : this.chunkedPayload.size();
+    }
+
+    dataSize(): number {
+        return Math.max(this.totalSize() - HEAP_DATA_OVERHEAD, 0);
+    }
+
+    getHeapCost(): number {
+        return 0;
+    }
+
+    getPartitionHash(): number {
+        this.calculatePayload();
+        if (this.hasPartitionHash()) {
+            return this.payload.readIntBE(PARTITION_HASH_OFFSET, 4);
+        } else {
+            return this.hashCode();
+        }
+    }
+
+    hashCode(): number {
+        this.calculatePayload();
+        return murmur(this.payload.slice(DATA_OFFSET));
+    }
+
+    equals(other: Data): boolean {
+        this.calculatePayload();
+        return this.payload.compare(other.toBuffer(), DATA_OFFSET, other.toBuffer().length, DATA_OFFSET) === 0;
+    }
+
+    hasPartitionHash(): boolean {
+        this.calculatePayload();
+        return this.payload.length >= HEAP_DATA_OVERHEAD
+            && this.payload.readIntBE(PARTITION_HASH_OFFSET, 4) !== 0;
+    }
+
+    isPortable(): boolean {
+        return false;
+    }
+
+    private calculatePayload() {
+        if (this.payload === null) {
+            this.payload = this.chunkedPayload.toBuffer();
+            this.chunkedPayload = null;
+        }
+        return this.payload;
     }
 
 }

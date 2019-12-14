@@ -20,59 +20,64 @@ import * as assert from 'assert';
 import * as Long from 'long';
 import {BitsUtil} from '../BitsUtil';
 import {Data, DataInput, DataOutput, PositionalDataOutput} from './Data';
-import {HeapData, HEAP_DATA_OVERHEAD} from './HeapData';
+import {HeapData} from './HeapData';
 import {SerializationService} from './SerializationService';
 
-const OUTPUT_BUFFER_INITIAL_SIZE = HEAP_DATA_OVERHEAD + BitsUtil.LONG_SIZE_IN_BYTES;
 const MASK_1BYTE = (1 << 8) - 1;
-const MASK_2BYTE = (1 << 16) - 1;
-const MASK_4BYTE = (1 << 32) - 1;
 
 export class ObjectDataOutput implements DataOutput {
-    protected buffer: Buffer;
+
+    protected chunks: (Buffer | string)[];
+    private totalSize: number;
     protected bigEndian: boolean;
     private standardUTF: boolean;
     private service: SerializationService;
-    private pos: number;
 
     constructor(service: SerializationService, isBigEndian: boolean, isStandardUTF: boolean) {
-        this.buffer = Buffer.allocUnsafe(OUTPUT_BUFFER_INITIAL_SIZE);
+        this.chunks = [];
+        this.totalSize = 0;
         this.service = service;
         this.bigEndian = isBigEndian;
         this.standardUTF = isStandardUTF;
-        this.pos = 0;
-    }
-
-    clear(): void {
-        this.buffer = Buffer.allocUnsafe(this.buffer.length);
-        this.pos = 0;
     }
 
     isBigEndian(): boolean {
         return this.bigEndian;
     }
 
-    position(newPosition?: number): number {
-        const oldPos = this.pos;
-        if (Number.isInteger(newPosition)) {
-            this.pos = newPosition;
+    size(): number {
+        return this.totalSize;
+    }
+
+    writeTo(buffer: Buffer): number {
+        // TODO assert wrote all bytes
+        let pos = 0;
+        for (let i = 0; i < this.chunks.length; i++) {
+            const chunk = this.chunks[i];
+            if (Buffer.isBuffer(chunk)) {
+                chunk.copy(buffer, pos);
+                pos += chunk.length;
+            } else {
+                const len = buffer.write(chunk, pos);
+                pos += len;
+            }
         }
-        return oldPos;
+        return pos;
     }
 
     toBuffer(): Buffer {
-        return this.buffer.slice(0, this.pos);
+        const buffer = Buffer.allocUnsafe(this.totalSize);
+        this.writeTo(buffer);
+        return buffer;
     }
 
     write(byte: number | Buffer): void {
         if (Buffer.isBuffer(byte)) {
-            this.ensureAvailable(byte.length);
-            byte.copy(this.buffer, this.pos);
-            this.pos += byte.length;
+            this.appendBuffer(byte);
         } else {
-            this.ensureAvailable(BitsUtil.BYTE_SIZE_IN_BYTES);
-            BitsUtil.writeUInt8(this.buffer, this.pos, byte & MASK_1BYTE);
-            this.pos += BitsUtil.BYTE_SIZE_IN_BYTES;
+            const buffer = Buffer.allocUnsafe(BitsUtil.BYTE_SIZE_IN_BYTES);
+            BitsUtil.writeUInt8(buffer, 0, byte & MASK_1BYTE);
+            this.appendBuffer(buffer);
         }
     }
 
@@ -100,9 +105,9 @@ export class ObjectDataOutput implements DataOutput {
     }
 
     writeChar(char: string): void {
-        this.ensureAvailable(BitsUtil.CHAR_SIZE_IN_BYTES);
-        BitsUtil.writeUInt16(this.buffer, this.pos, char.charCodeAt(0), this.isBigEndian());
-        this.pos += BitsUtil.CHAR_SIZE_IN_BYTES;
+        const buffer = Buffer.allocUnsafe(BitsUtil.CHAR_SIZE_IN_BYTES);
+        BitsUtil.writeUInt16(buffer, 0, char.charCodeAt(0), this.isBigEndian());
+        this.appendBuffer(buffer);
     }
 
     writeCharArray(chars: string[]): void {
@@ -127,9 +132,9 @@ export class ObjectDataOutput implements DataOutput {
     }
 
     writeDouble(double: number): void {
-        this.ensureAvailable(BitsUtil.DOUBLE_SIZE_IN_BYTES);
-        BitsUtil.writeDouble(this.buffer, this.pos, double, this.isBigEndian());
-        this.pos += BitsUtil.DOUBLE_SIZE_IN_BYTES;
+        const buffer = Buffer.allocUnsafe(BitsUtil.DOUBLE_SIZE_IN_BYTES);
+        BitsUtil.writeDouble(buffer, 0, double, this.isBigEndian());
+        this.appendBuffer(buffer);
     }
 
     writeDoubleArray(doubles: number[]): void {
@@ -137,9 +142,9 @@ export class ObjectDataOutput implements DataOutput {
     }
 
     writeFloat(float: number): void {
-        this.ensureAvailable(BitsUtil.FLOAT_SIZE_IN_BYTES);
-        BitsUtil.writeFloat(this.buffer, this.pos, float, this.isBigEndian());
-        this.pos += BitsUtil.FLOAT_SIZE_IN_BYTES;
+        const buffer = Buffer.allocUnsafe(BitsUtil.FLOAT_SIZE_IN_BYTES);
+        BitsUtil.writeFloat(buffer, 0, float, this.isBigEndian());
+        this.appendBuffer(buffer);
     }
 
     writeFloatArray(floats: number[]): void {
@@ -147,15 +152,15 @@ export class ObjectDataOutput implements DataOutput {
     }
 
     writeInt(int: number): void {
-        this.ensureAvailable(BitsUtil.INT_SIZE_IN_BYTES);
-        BitsUtil.writeInt32(this.buffer, this.pos, int, this.isBigEndian());
-        this.pos += BitsUtil.INT_SIZE_IN_BYTES;
+        const buffer = Buffer.allocUnsafe(BitsUtil.INT_SIZE_IN_BYTES);
+        BitsUtil.writeInt32(buffer, 0, int, this.isBigEndian());
+        this.appendBuffer(buffer);
     }
 
     writeIntBE(int: number): void {
-        this.ensureAvailable(BitsUtil.INT_SIZE_IN_BYTES);
-        BitsUtil.writeInt32(this.buffer, this.pos, int, true);
-        this.pos += BitsUtil.INT_SIZE_IN_BYTES;
+        const buffer = Buffer.allocUnsafe(BitsUtil.INT_SIZE_IN_BYTES);
+        BitsUtil.writeInt32(buffer, 0, int, true);
+        this.appendBuffer(buffer);
     }
 
     writeIntArray(ints: number[]): void {
@@ -163,18 +168,18 @@ export class ObjectDataOutput implements DataOutput {
     }
 
     writeLong(long: Long): void {
-        this.ensureAvailable(BitsUtil.LONG_SIZE_IN_BYTES);
+        const buffer = Buffer.allocUnsafe(BitsUtil.LONG_SIZE_IN_BYTES);
+        let pos = 0;
         if (this.isBigEndian()) {
-            BitsUtil.writeInt32(this.buffer, this.pos, long.high, true);
-            this.pos += BitsUtil.INT_SIZE_IN_BYTES;
-            BitsUtil.writeInt32(this.buffer, this.pos, long.low, true);
-            this.pos += BitsUtil.INT_SIZE_IN_BYTES;
+            BitsUtil.writeInt32(buffer, pos, long.high, true);
+            pos += BitsUtil.INT_SIZE_IN_BYTES;
+            BitsUtil.writeInt32(buffer, pos, long.low, true);
         } else {
-            BitsUtil.writeInt32(this.buffer, this.pos, long.low, false);
-            this.pos += BitsUtil.INT_SIZE_IN_BYTES;
-            BitsUtil.writeInt32(this.buffer, this.pos, long.high, false);
-            this.pos += BitsUtil.INT_SIZE_IN_BYTES;
+            BitsUtil.writeInt32(buffer, pos, long.low, false);
+            pos += BitsUtil.INT_SIZE_IN_BYTES;
+            BitsUtil.writeInt32(buffer, pos, long.high, false);
         }
+        this.appendBuffer(buffer);
     }
 
     writeLongArray(longs: Long[]): void {
@@ -186,9 +191,9 @@ export class ObjectDataOutput implements DataOutput {
     }
 
     writeShort(short: number): void {
-        this.ensureAvailable(BitsUtil.SHORT_SIZE_IN_BYTES);
-        BitsUtil.writeInt16(this.buffer, this.pos, short, this.isBigEndian());
-        this.pos += BitsUtil.SHORT_SIZE_IN_BYTES;
+        const buffer = Buffer.allocUnsafe(BitsUtil.SHORT_SIZE_IN_BYTES);
+        BitsUtil.writeInt16(buffer, 0, short, this.isBigEndian());
+        this.appendBuffer(buffer);
     }
 
     writeShortArray(shorts: number[]): void {
@@ -213,18 +218,6 @@ export class ObjectDataOutput implements DataOutput {
         }
     }
 
-    private available(): number {
-        return this.buffer == null ? 0 : this.buffer.length - this.pos;
-    }
-
-    private ensureAvailable(size: number): void {
-        if (this.available() < size) {
-            const newBuffer = Buffer.allocUnsafe(this.pos + size);
-            this.buffer.copy(newBuffer, 0, 0, this.pos);
-            this.buffer = newBuffer;
-        }
-    }
-
     private writeArray(func: Function, arr: any[]): void {
         const len = (arr != null) ? arr.length : BitsUtil.NULL_ARRAY_LENGTH;
         this.writeInt(len);
@@ -240,39 +233,61 @@ export class ObjectDataOutput implements DataOutput {
         if (len === BitsUtil.NULL_ARRAY_LENGTH) {
             return;
         }
-
-        const byteLen = Buffer.byteLength(val, 'utf8');
-        this.ensureAvailable(byteLen);
-        this.buffer.write(val, this.pos, this.pos + byteLen, 'utf8');
-        this.pos += byteLen;
+        this.appendString(val);
     }
 
     private writeUTFLegacy(val: string): void {
         const len = (val != null) ? val.length : BitsUtil.NULL_ARRAY_LENGTH;
         this.writeInt(len);
-        this.ensureAvailable(len * 3);
+
+        const buffer = Buffer.allocUnsafe(len * 3);
+        let pos = 0;
         for (let i = 0; i < len; i++) {
             const ch = val.charCodeAt(i);
             if (ch <= 0x007F) {
-                this.writeByte(ch);
+                BitsUtil.writeUInt8(buffer, pos, ch & MASK_1BYTE);
+                pos += BitsUtil.BYTE_SIZE_IN_BYTES;
             } else if (ch <= 0x07FF) {
-                this.write(0xC0 | ch >> 6 & 0x1F);
-                this.write(0x80 | ch & 0x3F);
+                BitsUtil.writeUInt8(buffer, pos, (0xC0 | ch >> 6 & 0x1F) & MASK_1BYTE);
+                pos += BitsUtil.BYTE_SIZE_IN_BYTES;
+                BitsUtil.writeUInt8(buffer, pos, (0x80 | ch & 0x3F) & MASK_1BYTE);
+                pos += BitsUtil.BYTE_SIZE_IN_BYTES;
             } else {
-                this.write(0xE0 | ch >> 12 & 0x0F);
-                this.write(0x80 | ch >> 6 & 0x3F);
-                this.write(0x80 | ch & 0x3F);
+                BitsUtil.writeUInt8(buffer, pos, (0xE0 | ch >> 12 & 0x0F) & MASK_1BYTE);
+                pos += BitsUtil.BYTE_SIZE_IN_BYTES;
+                BitsUtil.writeUInt8(buffer, pos, (0x80 | ch >> 6 & 0x3F) & MASK_1BYTE);
+                pos += BitsUtil.BYTE_SIZE_IN_BYTES;
+                BitsUtil.writeUInt8(buffer, pos, (0x80 | ch & 0x3F) & MASK_1BYTE);
+                pos += BitsUtil.BYTE_SIZE_IN_BYTES;
             }
         }
+        this.appendBuffer(buffer.slice(0, pos));
+    }
+
+    private appendBuffer(buffer: Buffer) {
+        this.chunks.push(buffer);
+        this.totalSize += buffer.length;
+    }
+
+    private appendString(str: string) {
+        this.chunks.push(str);
+        this.totalSize += Buffer.byteLength(str, 'utf8');
     }
 }
 
 export class PositionalObjectDataOutput extends ObjectDataOutput implements PositionalDataOutput {
+
+    position(): number {
+        const buffer = this.concatBuffers();
+        return buffer.length;
+    }
+
     pwrite(position: number, byte: number | Buffer): void {
+        const buffer = this.concatBuffers();
         if (Buffer.isBuffer(byte)) {
-            byte.copy(this.buffer, position);
+            byte.copy(buffer, position);
         } else {
-            (this.buffer as any)[position] = byte;
+            (buffer as any)[position] = byte;
         }
     }
 
@@ -285,37 +300,50 @@ export class PositionalObjectDataOutput extends ObjectDataOutput implements Posi
     }
 
     pwriteChar(position: number, char: string): void {
-        BitsUtil.writeUInt16(this.buffer, position, char.charCodeAt(0), this.isBigEndian());
+        const buffer = this.concatBuffers();
+        BitsUtil.writeUInt16(buffer, position, char.charCodeAt(0), this.isBigEndian());
     }
 
     pwriteDouble(position: number, double: number): void {
-        BitsUtil.writeDouble(this.buffer, position, double, this.isBigEndian());
+        const buffer = this.concatBuffers();
+        BitsUtil.writeDouble(buffer, position, double, this.isBigEndian());
     }
 
     pwriteFloat(position: number, float: number): void {
-        BitsUtil.writeFloat(this.buffer, position, float, this.isBigEndian());
+        const buffer = this.concatBuffers();
+        BitsUtil.writeFloat(buffer, position, float, this.isBigEndian());
     }
 
     pwriteInt(position: number, int: number): void {
-        BitsUtil.writeInt32(this.buffer, position, int, this.isBigEndian());
+        const buffer = this.concatBuffers();
+        BitsUtil.writeInt32(buffer, position, int, this.isBigEndian());
     }
 
     pwriteIntBE(position: number, int: number): void {
-        BitsUtil.writeInt32(this.buffer, position, int, true);
+        const buffer = this.concatBuffers();
+        BitsUtil.writeInt32(buffer, position, int, true);
     }
 
     pwriteLong(position: number, long: Long): void {
+        const buffer = this.concatBuffers();
         if (this.isBigEndian()) {
-            BitsUtil.writeInt32(this.buffer, position, long.high, true);
-            BitsUtil.writeInt32(this.buffer, position + BitsUtil.INT_SIZE_IN_BYTES, long.low, true);
+            BitsUtil.writeInt32(buffer, position, long.high, true);
+            BitsUtil.writeInt32(buffer, position + BitsUtil.INT_SIZE_IN_BYTES, long.low, true);
         } else {
-            BitsUtil.writeInt32(this.buffer, position, long.low, false);
-            BitsUtil.writeInt32(this.buffer, position + BitsUtil.INT_SIZE_IN_BYTES, long.high, false);
+            BitsUtil.writeInt32(buffer, position, long.low, false);
+            BitsUtil.writeInt32(buffer, position + BitsUtil.INT_SIZE_IN_BYTES, long.high, false);
         }
     }
 
     pwriteShort(position: number, short: number): void {
-        BitsUtil.writeInt16(this.buffer, position, short, this.isBigEndian());
+        const buffer = this.concatBuffers();
+        BitsUtil.writeInt16(buffer, position, short, this.isBigEndian());
+    }
+
+    private concatBuffers(): Buffer {
+        const buffer = this.toBuffer()
+        this.chunks = [buffer];
+        return buffer;
     }
 }
 

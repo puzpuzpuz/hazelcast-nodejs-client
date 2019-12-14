@@ -175,7 +175,10 @@ class ClientMessage {
     }
 
     appendData(data: Data): void {
-        this.appendBuffer(data.toBuffer());
+        const size = data.totalSize();
+        this.appendInt32(size);
+        data.writeTo(this.buffer.slice(this.cursor));
+        this.cursor += size;
     }
 
     addFlag(value: number): void {
