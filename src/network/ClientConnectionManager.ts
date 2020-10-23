@@ -260,10 +260,11 @@ export class ClientConnectionManager extends EventEmitter {
                 if (translatedAddress == null) {
                     throw new RangeError(`Address translator could not translate address ${address}`);
                 }
-                return this.triggerConnect(translatedAddress);
+                clientConnection = new ClientConnection(this.client, translatedAddress, this.connectionIdCounter++);
+                return this.triggerConnect(translatedAddress, clientConnection.onread.bind(clientConnection));
             })
             .then((socket) => {
-                clientConnection = new ClientConnection(this.client, translatedAddress, socket, this.connectionIdCounter++);
+                clientConnection.initSocket(socket);
                 return this.initiateCommunication(socket);
             })
             .then(() => clientConnection.registerResponseCallback(processResponseCallback))
@@ -501,11 +502,11 @@ export class ClientConnectionManager extends EventEmitter {
             }
             deferred.resolve();
         });
-
         return deferred.promise;
     }
 
-    private triggerConnect(translatedAddress: AddressImpl): Promise<net.Socket> {
+    private triggerConnect(translatedAddress: AddressImpl,
+                           onread: (nread: number, buf: Buffer) => boolean): Promise<net.Socket> {
         if (this.client.getConfig().network.ssl.enabled) {
             if (this.client.getConfig().network.ssl.sslOptions) {
                 const opts = this.client.getConfig().network.ssl.sslOptions;
@@ -529,7 +530,7 @@ export class ClientConnectionManager extends EventEmitter {
                 return this.connectTLSSocket(translatedAddress, opts);
             }
         } else {
-            return this.connectNetSocket(translatedAddress);
+            return this.connectNetSocket(translatedAddress, onread);
         }
     }
 
@@ -552,9 +553,17 @@ export class ClientConnectionManager extends EventEmitter {
         return connectionResolver.promise;
     }
 
-    private connectNetSocket(address: AddressImpl): Promise<net.Socket> {
+    private connectNetSocket(address: AddressImpl,
+                             onread: (nread: number, buf: Buffer) => boolean): Promise<net.Socket> {
         const connectionResolver = deferredPromise<net.Socket>();
-        const socket = net.connect(address.port, address.host);
+        const socket = net.connect({
+            port: address.port,
+            host: address.host,
+            onread: {
+                buffer: Buffer.allocUnsafeSlow(64 * 1024),
+                callback: onread
+            }
+        } as net.NetConnectOpts);
         socket.once('connect', () => {
             connectionResolver.resolve(socket);
         });

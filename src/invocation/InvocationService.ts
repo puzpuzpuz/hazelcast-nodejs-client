@@ -177,6 +177,7 @@ export class Invocation {
         if (expectedBackups > this.backupsAcksReceived) {
             this.pendingResponseReceivedMillis = Date.now();
             this.backupsAcksExpected = expectedBackups;
+            // TODO decoding must be synchronous
             this.pendingResponseMessage = clientMessage;
             return;
         }
@@ -215,6 +216,7 @@ export class Invocation {
     }
 
     complete(clientMessage: ClientMessage): void {
+        // TODO decoding must be synchronous
         this.deferred.resolve(clientMessage);
         this.invocationService.deregisterInvocation(this.request.getCorrelationId());
     }
@@ -418,6 +420,7 @@ export class InvocationService {
         const correlationId = clientMessage.getCorrelationId();
 
         if (clientMessage.startFrame.hasEventFlag() || clientMessage.startFrame.hasBackupEventFlag()) {
+            clientMessage = clientMessage.deepCopy();
             process.nextTick(() => {
                 const eventHandler = this.eventHandlers.get(correlationId);
                 if (eventHandler !== undefined) {

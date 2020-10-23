@@ -354,7 +354,7 @@ export class ObjectDataInput implements DataInput {
             }
             return null;
         }
-        const buf = this.buffer.slice(this.pos, this.pos + len);
+        const buf = Buffer.from(this.buffer.slice(this.pos, this.pos + len));
         if (pos !== undefined) {
             this.pos = backupPos;
         } else {

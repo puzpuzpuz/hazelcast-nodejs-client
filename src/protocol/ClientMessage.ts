@@ -272,6 +272,24 @@ export class ClientMessage {
         return newMessage;
     }
 
+    deepCopy(): ClientMessage {
+        const startFrameCopy = this.startFrame.deepCopy();
+        let newFrame = startFrameCopy;
+        let oldFrame = this.startFrame.next;
+        while (oldFrame != null) {
+            const oldFrameCopy = oldFrame.deepCopy();
+            newFrame.next = oldFrameCopy;
+            newFrame = oldFrameCopy;
+            oldFrame = oldFrame.next;
+        }
+        const newMessage = new ClientMessage(startFrameCopy, newFrame);
+
+        newMessage.retryable = this.retryable;
+        newMessage.connection = this.connection;
+
+        return newMessage;
+    }
+
     writeTo(buffer: Buffer, offset = 0): number {
         let pos = offset;
         let currentFrame = this.startFrame;

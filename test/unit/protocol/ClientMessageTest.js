@@ -165,4 +165,24 @@ describe('ClientMessageTest', function () {
 
         expect(Buffer.compare(actual, expected)).to.be.equal(0);
     });
+
+    it('deepCopy: should copy underlying buffers', function () {
+        const original = ClientMessage.createForEncode();
+
+        const frame = Frame.createInitialFrame(16);
+        original.addFrame(frame);
+        original.setMessageType(1);
+        original.setCorrelationId(Long.fromString('123'));
+        original.setPartitionId(11223344);
+
+        const copy = original.deepCopy();
+        copy.setMessageType(2);
+        copy.setCorrelationId(Long.fromString('321'));
+        original.setPartitionId(44332211);
+
+        const originalBuf = original.toBuffer();
+        const copyBuf = copy.toBuffer();
+
+        expect(Buffer.compare(originalBuf, copyBuf)).to.be.not.equal(0);
+    });
 });

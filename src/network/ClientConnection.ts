@@ -203,15 +203,17 @@ export class DirectWriter extends Writer {
 /** @internal */
 export class ClientMessageReader {
 
-    private chunks: Buffer[] = [];
-    private chunksTotalSize = 0;
+    private currentChunk: Buffer;
+    private pendingChunk: Buffer;
     private frameSize = 0;
     private flags = 0;
     private clientMessage: ClientMessage = null;
 
-    append(buffer: Buffer): void {
-        this.chunksTotalSize += buffer.length;
-        this.chunks.push(buffer);
+    process(nread: number, buf: Buffer): void {
+        if (this.currentChunk != null) {
+            throw new Error('Unexpected reader state!');
+        }
+        this.currentChunk = buf.slice(0, nread);
     }
 
     read(): ClientMessage {
@@ -223,36 +225,59 @@ export class ClientMessageReader {
                     return message;
                 }
             } else {
+                if (this.clientMessage != null) {
+                    // need to copy the message if it wasn't read in one go
+                    this.clientMessage = this.clientMessage.deepCopy();
+                }
                 return null;
             }
         }
     }
 
     readFrame(): boolean {
-        if (this.chunksTotalSize < SIZE_OF_FRAME_LENGTH_AND_FLAGS) {
+        if (this.currentChunk == null) {
+            return false;
+        }
+        let chunksTotalSize = this.currentChunk.length;
+        if (this.pendingChunk != null) {
+            chunksTotalSize += this.pendingChunk.length;
+        }
+        if (chunksTotalSize < SIZE_OF_FRAME_LENGTH_AND_FLAGS) {
             // we don't have even the frame length and flags ready
+            this.pendingChunk = this.pendingChunk != null
+                ? Buffer.concat([this.pendingChunk, this.currentChunk])
+                : Buffer.from(this.currentChunk);
+            this.currentChunk = null;
             return false;
         }
         if (this.frameSize === 0) {
             this.readFrameSizeAndFlags();
         }
-        if (this.chunksTotalSize < this.frameSize) {
+        if (chunksTotalSize < this.frameSize) {
+            this.pendingChunk = this.pendingChunk != null
+                ? Buffer.concat([this.pendingChunk, this.currentChunk])
+                : Buffer.from(this.currentChunk);
+            this.currentChunk = null;
             return false;
         }
 
-        let buf = this.chunks.length === 1 ? this.chunks[0] : Buffer.concat(this.chunks, this.chunksTotalSize);
-        if (this.chunksTotalSize > this.frameSize) {
-            if (this.chunks.length === 1) {
-                this.chunks[0] = buf.slice(this.frameSize);
-            } else {
-                this.chunks = [buf.slice(this.frameSize)];
-            }
-            buf = buf.slice(SIZE_OF_FRAME_LENGTH_AND_FLAGS, this.frameSize);
-        } else {
-            this.chunks = [];
+        let buf = this.currentChunk;
+        // construct the frame if there is a pending chunk
+        if (this.pendingChunk != null) {
+            const missingLength = this.frameSize - this.pendingChunk.length;
+            buf = Buffer.concat([this.pendingChunk, this.currentChunk.slice(0, missingLength)]);
             buf = buf.slice(SIZE_OF_FRAME_LENGTH_AND_FLAGS);
+            this.pendingChunk = null;
+            this.currentChunk = this.currentChunk.slice(missingLength);
+        } else {
+            buf = buf.slice(SIZE_OF_FRAME_LENGTH_AND_FLAGS, this.frameSize);
+            this.currentChunk = this.currentChunk.slice(this.frameSize);
         }
-        this.chunksTotalSize -= this.frameSize;
+
+        if (this.currentChunk.length === 0) {
+            this.currentChunk = null;
+        }
+
         this.frameSize = 0;
         // No need to reset flags since it will be overwritten on the next readFrameSizeAndFlags call.
         const frame = new Frame(buf, this.flags);
@@ -269,20 +294,19 @@ export class ClientMessageReader {
     }
 
     private readFrameSizeAndFlags(): void {
-        if (this.chunks[0].length >= SIZE_OF_FRAME_LENGTH_AND_FLAGS) {
-            this.frameSize = this.chunks[0].readInt32LE(0);
-            this.flags = this.chunks[0].readUInt16LE(BitsUtil.INT_SIZE_IN_BYTES);
-            return;
-        }
-        let readChunksSize = 0;
-        for (let i = 0; i < this.chunks.length; i++) {
-            readChunksSize += this.chunks[i].length;
-            if (readChunksSize >= SIZE_OF_FRAME_LENGTH_AND_FLAGS) {
-                const merged = Buffer.concat(this.chunks.slice(0, i + 1), readChunksSize);
-                this.frameSize = merged.readInt32LE(0);
-                this.flags = merged.readUInt16LE(BitsUtil.INT_SIZE_IN_BYTES);
-                return;
+        let buf = this.currentChunk;
+        if (this.pendingChunk != null) {
+            if (this.pendingChunk.length < SIZE_OF_FRAME_LENGTH_AND_FLAGS) {
+                const missingLength = SIZE_OF_FRAME_LENGTH_AND_FLAGS - this.pendingChunk.length;
+                buf = Buffer.concat([this.pendingChunk, this.currentChunk.slice(0, missingLength)]);
+            } else {
+                buf = this.pendingChunk;
             }
+        }
+        if (buf.length >= SIZE_OF_FRAME_LENGTH_AND_FLAGS) {
+            this.frameSize = buf.readInt32LE(0);
+            this.flags = buf.readUInt16LE(BitsUtil.INT_SIZE_IN_BYTES);
+            return;
         }
         throw new Error('Detected illegal internal call in ClientMessageReader!');
     }
@@ -326,7 +350,7 @@ export class ClientConnection {
     private readonly connectionId: number;
     private remoteAddress: AddressImpl;
     private remoteUuid: UUID;
-    private readonly localAddress: AddressImpl;
+    private localAddress: AddressImpl;
     private lastReadTimeMillis: number;
     private lastWriteTimeMillis: number;
     private readonly client: HazelcastClient;
@@ -335,33 +359,68 @@ export class ClientConnection {
     private closedReason: string;
     private closedCause: Error;
     private connectedServerVersion: number;
-    private readonly socket: net.Socket;
-    private readonly writer: Writer;
+    private responseCallback: ClientMessageHandler;
+    private socket: net.Socket;
+    private writer: Writer;
     private readonly reader: ClientMessageReader;
     private readonly logger: ILogger;
     private readonly fragmentedMessageHandler: FragmentedClientMessageHandler;
 
-    constructor(client: HazelcastClient, remoteAddress: AddressImpl, socket: net.Socket, connectionId: number) {
-        const enablePipelining = client.getConfig().properties[PROPERTY_PIPELINING_ENABLED] as boolean;
-        const pipeliningThreshold = client.getConfig().properties[PROPERTY_PIPELINING_THRESHOLD] as number;
-        const noDelay = client.getConfig().properties[PROPERTY_NO_DELAY] as boolean;
-        socket.setNoDelay(noDelay);
-
+    constructor(client: HazelcastClient, remoteAddress: AddressImpl, connectionId: number) {
         this.client = client;
-        this.socket = socket;
         this.remoteAddress = remoteAddress;
-        this.localAddress = new AddressImpl(socket.localAddress, socket.localPort);
         this.lastReadTimeMillis = 0;
         this.closedTime = 0;
         this.connectedServerVersion = BuildInfo.UNKNOWN_VERSION_ID;
-        this.writer = enablePipelining ? new PipelinedWriter(socket, pipeliningThreshold) : new DirectWriter(socket);
-        this.writer.on('write', () => {
-            this.lastWriteTimeMillis = Date.now();
-        });
         this.reader = new ClientMessageReader();
         this.connectionId = connectionId;
         this.logger = this.client.getLoggingService().getLogger();
         this.fragmentedMessageHandler = new FragmentedClientMessageHandler(this.logger);
+    }
+
+    initSocket(socket: net.Socket): void {
+        const noDelay = this.client.getConfig().properties[PROPERTY_NO_DELAY] as boolean;
+        socket.setNoDelay(noDelay);
+
+        this.socket = socket;
+        this.localAddress = new AddressImpl(socket.localAddress, socket.localPort);
+
+        const enablePipelining = this.client.getConfig().properties[PROPERTY_PIPELINING_ENABLED] as boolean;
+        const pipeliningThreshold = this.client.getConfig().properties[PROPERTY_PIPELINING_THRESHOLD] as number;
+        this.writer = enablePipelining ? new PipelinedWriter(socket, pipeliningThreshold) : new DirectWriter(socket);
+        this.writer.on('write', () => {
+            this.lastWriteTimeMillis = Date.now();
+        });
+    }
+
+    onread(nread: number, buf: Buffer): boolean {
+        if (this.responseCallback === undefined) {
+            this.logger.error('responseCallback is missing', this.toString());
+            return true;
+        }
+
+        this.lastReadTimeMillis = Date.now();
+        this.reader.process(nread, buf);
+        let clientMessage = this.reader.read();
+        while (clientMessage !== null) {
+            if (clientMessage.startFrame.hasUnfragmentedMessageFlag()) {
+                this.responseCallback(clientMessage);
+            } else {
+                throw new Error('fragmentedMessageHandler is not supported');
+                // this.fragmentedMessageHandler.handleFragmentedMessage(clientMessage, this.responseCallback);
+            }
+            clientMessage = this.reader.read();
+        }
+
+        return true;
+    }
+
+    /**
+     * Registers a function to pass received data on 'data' events on this connection.
+     * @param callback
+     */
+    registerResponseCallback(callback: ClientMessageHandler): void {
+        this.responseCallback = callback;
     }
 
     /**
@@ -460,26 +519,6 @@ export class ClientConnection {
             + ', connectionId=' + this.connectionId
             + ', remoteAddress=' + this.remoteAddress
             + '}';
-    }
-
-    /**
-     * Registers a function to pass received data on 'data' events on this connection.
-     * @param callback
-     */
-    registerResponseCallback(callback: ClientMessageHandler): void {
-        this.socket.on('data', (buffer: Buffer) => {
-            this.lastReadTimeMillis = Date.now();
-            this.reader.append(buffer);
-            let clientMessage = this.reader.read();
-            while (clientMessage !== null) {
-                if (clientMessage.startFrame.hasUnfragmentedMessageFlag()) {
-                    callback(clientMessage);
-                } else {
-                    this.fragmentedMessageHandler.handleFragmentedMessage(clientMessage, callback);
-                }
-                clientMessage = this.reader.read();
-            }
-        });
     }
 
     private logClose(): void {
